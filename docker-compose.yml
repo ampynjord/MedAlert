@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./src/backend
+    container_name: medalert-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/database/medals.db
+    volumes:
+      - database-data:/app/database
+    restart: unless-stopped
+
+  discord-bot:
+    build: ./src/discord
+    container_name: medalert-discord
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://backend:3000
+    env_file:
+      - ./src/discord/.env
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  web:
+    build: ./src/web
+    container_name: medalert-web
+    ports:
+      - "8090:8090"
+      - "8443:8443"
+    environment:
+      - NODE_ENV=production
+      - API_URL=http://backend:3000
+    depends_on:
+      - backend
+    restart: unless-stopped
+    volumes:
+      - ./src/web:/app
+      - /app/node_modules
+
+  nginx:
+    build: ./nginx
+    container_name: medalert-nginx
+    ports:
+      - "8444:8443"
+    depends_on:
+      - web
+      - backend
+    restart: unless-stopped
+
+volumes:
+  database-data:
+    driver: local

@@ -1,0 +1,12 @@
+{
+  "name": "medalert-web",
+  "version": "1.0.0",
+  "description": "Frontend MedAlert avec serveur Express minimal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
