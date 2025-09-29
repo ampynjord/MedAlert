@@ -1,11 +1,21 @@
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --only=production
 COPY . .
 RUN mkdir -p /app/database
+RUN mkdir -p /app/certs
+
+# Copier les certificats SSL
+COPY localhost-cert.pem /app/certs/
+COPY localhost-key.pem /app/certs/
+
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HTTPS_PORT=3443
 ENV DB_PATH=/app/database/medals.db
-EXPOSE 3000
+ENV SSL_CERT_PATH=/app/certs/localhost-cert.pem
+ENV SSL_KEY_PATH=/app/certs/localhost-key.pem
+
+EXPOSE 3000 3443
 CMD ["node", "server.js"]

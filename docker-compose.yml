@@ -6,12 +6,17 @@ services:
     container_name: medalert-backend
     ports:
       - "3000:3000"
+      - "3443:3443"
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - HTTPS_PORT=3443
       - DB_PATH=/app/database/medals.db
+      - SSL_CERT_PATH=/app/certs/localhost-cert.pem
+      - SSL_KEY_PATH=/app/certs/localhost-key.pem
     volumes:
       - database-data:/app/database
+      - ./nginx/certs:/app/certs
     restart: unless-stopped
 
   discord-bot:
@@ -19,7 +24,7 @@ services:
     container_name: medalert-discord
     environment:
       - NODE_ENV=production
-      - API_URL=http://backend:3000
+      - BACKEND_URL=https://backend:3443
     env_file:
       - ./src/discord/.env
     depends_on:
@@ -34,18 +39,23 @@ services:
       - "8443:8443"
     environment:
       - NODE_ENV=production
-      - API_URL=http://backend:3000
+      - API_URL=https://backend:3443
+      - SSL_CERT_PATH=/app/certs/localhost-cert.pem
+      - SSL_KEY_PATH=/app/certs/localhost-key.pem
     depends_on:
       - backend
     restart: unless-stopped
     volumes:
       - ./src/web:/app
       - /app/node_modules
+      - ./nginx/certs:/app/certs
 
   nginx:
     build: ./nginx
     container_name: medalert-nginx
     ports:
+      - "80:80"
+      - "443:443"
       - "8444:8443"
     depends_on:
       - web

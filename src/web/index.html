@@ -246,6 +246,8 @@
     </div>
     <div id="alert-status" style="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(30,40,60,0.95);color:#fff;padding:0.7em 1.5em;border-radius:18px;font-size:1em;box-shadow:0 2px 16px #1bb6ff55;display:none;"></div>
     <button id="enable-alerts-btn" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--primary);color:#fff;border:none;border-radius:30px;padding:0.7em 2em;font-size:1.1em;box-shadow:0 2px 16px #1bb6ff55;display:none;">Activer les alertes</button>
+    <button id="push-status-btn" style="position:fixed;bottom:180px;left:50%;transform:translateX(-50%);z-index:9999;background:#00d4ff;color:#222;border:none;border-radius:30px;padding:0.6em 1.5em;font-size:1em;box-shadow:0 2px 16px #00d4ff55;">État abonnement push</button>
+    <div id="push-status-info" style="position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:9999;background:#23273aee;color:#fff;padding:0.7em 1.5em;border-radius:18px;font-size:0.95em;box-shadow:0 2px 16px #1bb6ff55;display:none;max-width:90vw;text-align:center;"></div>
     <button id="test-notif-btn" style="position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--secondary);color:#fff;border:none;border-radius:30px;padding:0.6em 1.5em;font-size:1em;box-shadow:0 2px 16px #7f5fff55;">Tester notification</button>
     <div id="pwa-ios-hint" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#23273aee;color:#fff;padding:0.7em 1.5em;border-radius:18px;font-size:1em;box-shadow:0 2px 16px #1bb6ff55;display:none;max-width:90vw;text-align:center;"></div>
     <audio id="alert-audio" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae5b2.mp3" preload="auto"></audio>
@@ -381,6 +383,85 @@
         window.addEventListener('DOMContentLoaded', () => {
             if (Notification.permission !== 'granted') enableBtn.style.display = '';
             enableBtn.onclick = enableAlerts;
+
+            // Bouton diagnostic push
+            const pushStatusBtn = document.getElementById('push-status-btn');
+            const pushStatusInfo = document.getElementById('push-status-info');
+            if (pushStatusBtn && pushStatusInfo) {
+                pushStatusBtn.onclick = async () => {
+                    if ('serviceWorker' in navigator && 'PushManager' in window) {
+                        const reg = await navigator.serviceWorker.ready;
+                        const sub = await reg.pushManager.getSubscription();
+                        if (sub) {
+                            pushStatusInfo.style.display = '';
+                            pushStatusInfo.textContent = 'Abonnement push actif : ' + sub.endpoint.slice(0, 48) + '...';
+                        } else {
+                            pushStatusInfo.style.display = '';
+                            pushStatusInfo.textContent = 'Aucun abonnement push trouvé. Cliquez pour tenter de vous abonner.';
+                            // Tente l’abonnement
+                            try {
+                                const vapidRes = await fetch('/api/vapid-key');
+                                const vapid = await vapidRes.json();
+                                const subscribeOptions = {
+                                    userVisibleOnly: true,
+                                    applicationServerKey: urlBase64ToUint8Array(vapid.publicKey)
+                                };
+                                const subscription = await reg.pushManager.subscribe(subscribeOptions);
+                                await fetch('/api/subscribe', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(subscription)
+                                });
+                                pushStatusInfo.textContent = 'Abonnement push créé avec succès !';
+                            } catch (e) {
+                                pushStatusInfo.textContent = 'Erreur abonnement push : ' + e.message;
+                            }
+                        }
+                    } else {
+                        pushStatusInfo.style.display = '';
+                        pushStatusInfo.textContent = 'Push API non supportée sur ce navigateur.';
+                    }
+                };
+            }
+
+            // Abonnement Push API
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.ready.then(async reg => {
+                    // Récupère la clé publique VAPID depuis le backend
+                    const vapidRes = await fetch('/api/vapid-key');
+                    const vapid = await vapidRes.json();
+                    const subscribeOptions = {
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapid.publicKey)
+                    };
+                    reg.pushManager.getSubscription().then(async sub => {
+                        if (!sub) {
+                            const subscription = await reg.pushManager.subscribe(subscribeOptions);
+                            // Envoie l’abonnement au backend
+                            await fetch('/api/subscribe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(subscription)
+                            });
+                            console.log('Abonnement push enregistré');
+                        } else {
+                            console.log('Déjà abonné aux notifications push');
+                        }
+                    });
+                });
+            }
+
+            // Utilitaire pour décoder la clé VAPID
+            function urlBase64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            }
         });
         // Diagnostic service worker et notification
         const testBtn = document.getElementById('test-notif-btn');
