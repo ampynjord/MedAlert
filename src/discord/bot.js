@@ -7,7 +7,7 @@ require('dotenv').config();
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 const BACKEND_URL = process.env.BACKEND_URL || 'https://backend:3443';
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID; // ID du bot Discord
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.CLIENT_ID; // ID du bot Discord
 
 // Configuration axios pour HTTPS avec certificats auto-signés
 const httpsAgent = new https.Agent({

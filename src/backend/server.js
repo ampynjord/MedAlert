@@ -8,11 +8,20 @@ const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const webpush = require('web-push');
 
-const VAPID = JSON.parse(fs.readFileSync(path.join(__dirname, 'vapid.json')));
+// Utiliser les variables d'environnement pour VAPID
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@medalert.local';
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  console.error('❌ VAPID keys manquantes dans .env');
+  process.exit(1);
+}
+
 webpush.setVapidDetails(
-  'mailto:admin@localhost',
-  VAPID.publicKey,
-  VAPID.privateKey
+  VAPID_SUBJECT,
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
 );
 function sendPushToAll(title, body) {
   subs.forEach(sub => {
@@ -144,7 +153,7 @@ function getTierName(tier) {
 
 // Endpoint pour récupérer la clé publique VAPID
 app.get('/api/vapid-key', (req, res) => {
-  res.json({ publicKey: VAPID.publicKey });
+  res.json({ publicKey: VAPID_PUBLIC_KEY });
 });
 
 // Endpoint pour s'abonner aux notifications push

@@ -6,8 +6,8 @@ const https = require('https');
 const http = require('http');
 const app = express();
 
-const PORT = process.env.PORT || 8090;
-const HTTPS_PORT = 8443;
+const PORT = process.env.PUBLIC_WEB_HTTP_PORT || process.env.PORT || 8090;
+const HTTPS_PORT = process.env.PUBLIC_WEB_HTTPS_PORT || process.env.WEB_INTERNAL_PORT || 8443;
 const PUBLIC_DIR = path.join(__dirname);
 const API_URL = process.env.API_URL || 'https://backend:3443';
 
@@ -91,7 +91,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
   // Serveur HTTP de redirection
   const httpApp = express();
   httpApp.use((req, res) => {
-    res.redirect(301, `https://${req.headers.host.replace(':8090', ':8443')}${req.url}`);
+    res.redirect(301, `https://${req.headers.host.replace(`:${PORT}`, `:${HTTPS_PORT}`)}${req.url}`);
   });
   httpApp.listen(PORT, '0.0.0.0', () => {
     console.log(`🔄 Redirection HTTP vers HTTPS sur le port ${PORT}`);

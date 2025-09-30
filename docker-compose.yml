@@ -1,47 +1,55 @@
 services:
+  # Service de génération automatique des certificats SSL
+  cert-generator:
+    build: ./certs
+    container_name: medalert-certs
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./certs:/certs
+    restart: "no"
+
   backend:
     build: ./src/backend
     container_name: medalert-backend
     ports:
-      - "3000:3000"
-      - "3443:3443"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - HTTPS_PORT=3443
-      - DB_PATH=/app/database/medals.db
-      - SSL_CERT_PATH=/app/certs/localhost-cert.pem
-      - SSL_KEY_PATH=/app/certs/localhost-key.pem
+      - "${PORT:-3000}:${PORT:-3000}"
+      - "${HTTPS_PORT:-3443}:${HTTPS_PORT:-3443}"
+    env_file:
+      - .env
     volumes:
       - database-data:/app/database
       - ./certs:/app/certs
+    depends_on:
+      cert-generator:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   discord-bot:
     build: ./src/discord
     container_name: medalert-discord
-    environment:
-      - NODE_ENV=production
-      - BACKEND_URL=https://backend:3443
     env_file:
-      - ./src/discord/.env
+      - .env
     depends_on:
-      - backend
+      cert-generator:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
     restart: unless-stopped
 
   web:
     build: ./src/web
     container_name: medalert-web
     ports:
-      - "8090:8090"
-      - "8443:8443"
-    environment:
-      - NODE_ENV=production
-      - API_URL=https://backend:3443
-      - SSL_CERT_PATH=/app/certs/localhost-cert.pem
-      - SSL_KEY_PATH=/app/certs/localhost-key.pem
+      - "${PUBLIC_WEB_HTTP_PORT:-8090}:8090"
+      - "${PUBLIC_WEB_HTTPS_PORT:-8443}:8443"
+    env_file:
+      - .env
     depends_on:
-      - backend
+      cert-generator:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
     restart: unless-stopped
     volumes:
       - ./src/web:/app
@@ -52,14 +60,20 @@ services:
     build: ./nginx
     container_name: medalert-nginx
     ports:
-      - "80:80"
-      - "443:443"
-      - "8444:8443"
+      - "${PUBLIC_HTTP_PORT:-80}:80"
+      - "${PUBLIC_HTTPS_PORT:-443}:443"
+      - "${PUBLIC_NGINX_ALT_PORT:-8444}:8443"
+    env_file:
+      - .env
     volumes:
       - ./certs:/etc/nginx/certs
     depends_on:
-      - web
-      - backend
+      cert-generator:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+      backend:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
