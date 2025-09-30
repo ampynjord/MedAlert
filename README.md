@@ -55,7 +55,7 @@ MedAlert/
 **Nouvelle commande slash `/alert`** avec paramètres structurés :
 
 ```
-/alert tier:T3 motif:"Blessure par arme" localisation:"GrimHex" equipe:"RSI Medical"
+/alert tier:T1 motif:"Blessure par arme" localisation:"GrimHex" equipe:"RSI Medical"
 ```
 
 **Paramètres :**
@@ -68,9 +68,9 @@ MedAlert/
 
 | Tier | Nom | Couleur | Priorité | Description |
 |------|-----|---------|----------|-------------|
-| **T1** | Blessure légère | 🟡 Jaune | Faible | Blessures superficielles, soins basiques |
+| **T1** | Blessure grave | 🔴 Rouge | **Élevée** | Blessures graves, intervention urgente requise |
 | **T2** | Blessure modérée | 🟠 Orange | Modérée | Blessures nécessitant attention médicale |
-| **T3** | Blessure grave | 🔴 Rouge | Élevée | Blessures graves, intervention urgente |
+| **T3** | Blessure légère | 🟡 Jaune | Faible | Blessures superficielles, soins basiques |
 
 ### 🖥️ Interface Holographique
 
@@ -144,7 +144,7 @@ MedAlert/
 
 **Exemple d'usage :**
 ```
-/alert tier:T3 motif:"Inconscient après combat" localisation:"Port Olisar" equipe:"Medical Corp"
+/alert tier:T1 motif:"Inconscient après combat" localisation:"Port Olisar" equipe:"Medical Corp"
 ```
 
 ### Interface Web
@@ -243,7 +243,7 @@ docker-compose up --build
 
 - **Total des alertes** créées
 - **Alertes actives** (dernières 24h)
-- **Alertes haute priorité** (T3)
+- **Alertes haute priorité** (T1)
 - **Status réseau** (Backend, Discord, Database)
 - **Notifications push** (statut, abonnements)
 
@@ -326,9 +326,9 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 ## 🎮 Star Citizen Medical Division
 
-*Développé pour la communauté Star Citizen par des joueurs passionnés*
+*Développé par **ampynjord** pour la communauté Star Citizen*
 
-**⚕️ Sauver des vies dans les étoiles, une alerte à la fois**
+**⚕️ MedAlert - Sauver des vies dans les étoiles, une alerte à la fois**
 
 ---
 
@@ -347,5 +347,6 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 - [ ] **Multi-langue** (EN, FR, DE, ES)
 - [ ] **API publique** pour développeurs tiers
 
-**Version actuelle :** 2.0.0 - Interface Holographique
+**Version actuelle :** 2.1.0 - Système T1-T3 Optimisé
 **Dernière mise à jour :** Septembre 2025
+**Développeur :** ampynjord
