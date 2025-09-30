@@ -6,10 +6,6 @@ COPY . .
 RUN mkdir -p /app/database
 RUN mkdir -p /app/certs
 
-# Copier les certificats SSL
-COPY localhost-cert.pem /app/certs/
-COPY localhost-key.pem /app/certs/
-
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HTTPS_PORT=3443

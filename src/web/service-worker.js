@@ -20,7 +20,7 @@ self.addEventListener('message', event => {
   if (event.data && event.data.type === 'alert-notification') {
     self.registration.showNotification(event.data.title, {
       body: event.data.body,
-      icon: event.data.icon || '/icon-192.png',
+      icon: event.data.icon || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%23000'/%3E%3Ctext x='96' y='120' font-size='80' text-anchor='middle' fill='%2300d4ff'%3E⚕️%3C/text%3E%3C/svg%3E",
       vibrate: [200, 100, 200],
       tag: 'medalert',
       renotify: true

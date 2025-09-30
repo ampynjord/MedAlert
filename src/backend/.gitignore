@@ -1,15 +1,18 @@
+# Backend-specific files
 node_modules/
-*.log
-npm-debug.log*
-yarn-error.log*
+package-lock.json
+
+# Database files (local development)
+*.db
+*.sqlite
+*.sqlite3
+push-subs.json
+
+# SSL certificates (local)
 localhost-cert.pem
 localhost-key.pem
-.env
-.DS_Store
-Thumbs.db
-/dist/
-/build/
-.cache/
-*.bak
-*~
-*.db
+
+# Backend uploads/data
+uploads/
+data/
+logs/

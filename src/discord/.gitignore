@@ -1,12 +1,12 @@
+# Discord bot specific files
 node_modules/
-*.log
-npm-debug.log*
-yarn-error.log*
+package-lock.json
+
+# Discord token and sensitive data
 .env
-.DS_Store
-Thumbs.db
-/dist/
-/build/
-.cache/
-*.bak
-*~
+.env.local
+.env.production
+
+# Bot logs and data
+bot-logs/
+command-cache/

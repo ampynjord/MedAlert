@@ -5,7 +5,9 @@
       "Bash(docker-compose:*)",
       "Bash(curl:*)",
       "Bash(docker volume:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Bash(npm install)",
+      "Bash(node server.js)"
     ],
     "deny": [],
     "ask": []

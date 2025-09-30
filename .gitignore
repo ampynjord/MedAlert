@@ -1,49 +1,96 @@
-# Node
+# Dependencies
 node_modules/
+package-lock.json
+
+# Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# Certificats et clés locales
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage and testing
+lib-cov
+.nyc_output
+.coverage
+.lcov
+.mocha
+.jest
+coverage/
+*.lcov
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.turbo/
+
+# Docker data
+database-data/
+push-subs.json
+
+# SSL Certificates (auto-generated)
 *.pem
 *.key
 *.crt
+*.p12
+*.pfx
 
-# Environnements
-.env
-.env.*
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
-# Systèmes
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 
-# Docker
-*.pid
-database-data/
-
-# VSCode
-.vscode/
-
-# Build/Dist
-/dist/
-/build/
-
-# Autres caches
-.cache/
-.next/
-.turbo/
-.parcel-cache/
-.sass-cache/
-.eslintcache/
-.nyc_output/
-.pytest_cache/
-.mypy_cache/
-.coverage/
-
-# SQLite
-*.sqlite
-*.db
-
-# Autres
+# Temporary files
+*.tmp
+*.temp
 *.bak
-*~
+*.backup
+*.old
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini

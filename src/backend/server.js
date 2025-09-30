@@ -19,7 +19,7 @@ function sendPushToAll(title, body) {
     webpush.sendNotification(sub, JSON.stringify({
       title,
       body,
-      icon: '/icon-192.png',
+      icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%23000'/%3E%3Ctext x='96' y='120' font-size='80' text-anchor='middle' fill='%2300d4ff'%3E⚕️%3C/text%3E%3C/svg%3E",
       vibrate: [200, 100, 200],
       tag: 'medalert',
       renotify: true
@@ -71,6 +71,9 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     location TEXT,
     injuryType TEXT,
     priority TEXT,
+    motif TEXT,
+    equipe TEXT,
+    tier TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`, (err) => {
     if (err) {
@@ -98,23 +101,46 @@ app.get('/api/alerts', (req, res) => {
 
 // Créer une alerte
 app.post('/api/alerts', (req, res) => {
-  const { originalMessage, userId, username, location, injuryType, priority } = req.body;
+  const { originalMessage, userId, username, location, injuryType, priority, motif, equipe, tier } = req.body;
   if (!originalMessage || !userId || !username) return res.status(400).json({ error: 'Champs requis manquants' });
+
   db.run(
-    'INSERT INTO alerts (originalMessage, userId, username, location, injuryType, priority) VALUES (?, ?, ?, ?, ?, ?)',
-    [originalMessage, userId, username, location, injuryType, priority],
+    'INSERT INTO alerts (originalMessage, userId, username, location, injuryType, priority, motif, equipe, tier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [originalMessage, userId, username, location, injuryType, priority, motif, equipe, tier],
     function (err) {
       if (err) return res.status(500).json({ error: 'Erreur base de données' });
       db.get('SELECT * FROM alerts WHERE id = ?', [this.lastID], (err, alert) => {
         if (err) return res.status(500).json({ error: 'Erreur base de données' });
         res.status(201).json(alert);
 
-        // Envoi notification push à tous les abonnés
-        sendPushToAll('🚨 Nouvelle alerte MedAlert', `${username} : ${originalMessage}`);
+        // Envoi notification push à tous les abonnés avec tier
+        const tierIcon = tier ? getTierIcon(tier) : '🚨';
+        const tierName = tier ? getTierName(tier) : 'Alerte';
+        sendPushToAll(`${tierIcon} ${tierName} - MedAlert`, `${username} : ${originalMessage}`);
       });
     }
   );
 });
+
+// Fonction helper pour les icônes de tier (T1-T3)
+function getTierIcon(tier) {
+  const icons = {
+    'T1': '🔴', // Rouge pour T1 (priorité haute)
+    'T2': '🔶', // Orange pour T2 (priorité moyenne)
+    'T3': '⚠️'  // Jaune pour T3 (priorité basse)
+  };
+  return icons[tier] || '🚨';
+}
+
+// Fonction helper pour les noms de tier (T1-T3)
+function getTierName(tier) {
+  const names = {
+    'T1': 'Blessure grave',     // T1 = Priorité haute
+    'T2': 'Blessure modérée',   // T2 = Priorité moyenne
+    'T3': 'Blessure légère'     // T3 = Priorité basse
+  };
+  return names[tier] || 'Alerte médicale';
+}
 
 // Endpoint pour récupérer la clé publique VAPID
 app.get('/api/vapid-key', (req, res) => {

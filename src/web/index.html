@@ -3,583 +3,1205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedAlert Dashboard</title>
-    <link href="https://fonts.googleapis.com/css?family=Orbitron:700,500|Exo+2:400,600&display=swap" rel="stylesheet">
+    <title>MedAlert - Medical Command Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #10131a;
-            --sidebar: #181c26cc;
-            --card: #181c26ee;
-            --glass: rgba(24,28,38,0.85);
-            --primary: #1bb6ff;
-            --secondary: #7f5fff;
-            --accent: #ff3366;
-            --text: #eaf6ff;
-            --subtext: #7fa7c7;
-            --shadow: 0 8px 32px 0 #1bb6ff22;
-            --border: #23273a;
-            --danger: #ff3366;
+            /* Holographic Color Palette */
+            --holo-cyan: #00ffff;
+            --holo-blue: #0080ff;
+            --holo-purple: #8000ff;
+            --holo-green: #00ff80;
+            --holo-orange: #ff8000;
+            --holo-red: #ff0040;
+            --holo-yellow: #ffff00;
+
+            /* Background & Surfaces */
+            --bg-space: #000408;
+            --bg-panel: rgba(0, 20, 40, 0.15);
+            --bg-glass: rgba(0, 255, 255, 0.03);
+            --bg-command: rgba(0, 128, 255, 0.08);
+
+            /* Text Colors */
+            --text-primary: #ffffff;
+            --text-secondary: #b3e5fc;
+            --text-accent: var(--holo-cyan);
+            --text-warning: var(--holo-orange);
+            --text-danger: var(--holo-red);
+            --text-success: var(--holo-green);
+
+            /* Glows & Effects */
+            --glow-primary: 0 0 20px var(--holo-cyan);
+            --glow-secondary: 0 0 15px var(--holo-blue);
+            --glow-accent: 0 0 25px var(--holo-purple);
+            --scan-line: linear-gradient(90deg, transparent, var(--holo-cyan), transparent);
+
+            /* Borders & Outlines */
+            --border-holo: 1px solid rgba(0, 255, 255, 0.3);
+            --border-active: 2px solid var(--holo-cyan);
+            --border-warning: 2px solid var(--holo-orange);
+            --border-danger: 2px solid var(--holo-red);
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         html, body {
-            margin: 0; padding: 0; min-height: 100vh;
-            font-family: 'Exo 2', Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            height: 100vh;
+            font-family: 'Rajdhani', monospace;
+            background: var(--bg-space);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+
+        /* Holographic Grid Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
+            background:
+                radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0, 128, 255, 0.03) 0%, transparent 50%),
+                linear-gradient(0deg, transparent 24%, rgba(0, 255, 255, 0.05) 25%, rgba(0, 255, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.05) 75%, rgba(0, 255, 255, 0.05) 76%, transparent 77%),
+                linear-gradient(90deg, transparent 24%, rgba(0, 255, 255, 0.05) 25%, rgba(0, 255, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.05) 75%, rgba(0, 255, 255, 0.05) 76%, transparent 77%);
+            background-size: 100px 100px;
+            pointer-events: none;
+            z-index: -1;
         }
-        body {
-            display: flex;
-            min-height: 100vh;
+
+        /* Scanline Effect */
+        .scanlines::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.02) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanlines 0.1s linear infinite;
         }
-        .sidebar {
-            width: 80px;
-            background: var(--sidebar);
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        /* Main Layout */
+        .command-interface {
+            display: grid;
+            grid-template-areas:
+                "header header header"
+                "nav main systems"
+                "nav main systems";
+            grid-template-columns: 120px 1fr 320px;
+            grid-template-rows: 80px 1fr;
+            height: 100vh;
+            gap: 2px;
+            padding: 2px;
+        }
+
+        /* Header Command Bar */
+        .header-command {
+            grid-area: header;
+            background: var(--bg-command);
+            border: var(--border-holo);
+            border-radius: 0 0 10px 10px;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            padding: 2rem 0 1rem 0;
-            box-shadow: 2px 0 24px #1bb6ff11;
-            border-right: 1.5px solid var(--border);
+            padding: 0 2rem;
+            position: relative;
+            overflow: hidden;
         }
-        .sidebar .logo {
-            margin-bottom: 2.5rem;
+
+        .header-command::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--scan-line);
+            animation: scan-header 3s linear infinite;
         }
-        .sidebar svg {
-            width: 48px; height: 48px;
-            display: block;
-            margin: 0 auto;
-            filter: drop-shadow(0 0 8px #1bb6ff55);
+
+        @keyframes scan-header {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
-        .sidebar .nav {
+
+        .logo-hologram {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--holo-cyan);
+            text-shadow: var(--glow-primary);
+            margin-right: 2rem;
+            position: relative;
+        }
+
+        .logo-hologram::after {
+            content: 'MEDALERT';
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: rgba(0, 255, 255, 0.3);
+            transform: translateX(2px) translateY(1px);
+            z-index: -1;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 2rem;
+            margin-left: auto;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online { background: var(--holo-green); box-shadow: 0 0 10px var(--holo-green); }
+        .status-dot.warning { background: var(--holo-orange); box-shadow: 0 0 10px var(--holo-orange); }
+        .status-dot.danger { background: var(--holo-red); box-shadow: 0 0 10px var(--holo-red); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Navigation Panel */
+        .nav-panel {
+            grid-area: nav;
+            background: var(--bg-panel);
+            border: var(--border-holo);
+            border-radius: 10px;
+            padding: 1rem;
             display: flex;
             flex-direction: column;
-            gap: 2.2rem;
+            gap: 1rem;
         }
-        .sidebar .nav-btn {
-            background: none;
-            border: none;
-            color: var(--subtext);
-            font-size: 1.7em;
+
+        .nav-button {
+            background: transparent;
+            border: var(--border-holo);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            padding: 1rem;
+            font-family: 'Rajdhani', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: color 0.2s;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .sidebar .nav-btn.active, .sidebar .nav-btn:hover {
-            color: var(--primary);
+
+        .nav-button:hover {
+            color: var(--holo-cyan);
+            border-color: var(--holo-cyan);
+            box-shadow: var(--glow-primary);
+            transform: translateX(5px);
         }
-        .main {
-            flex: 1;
+
+        .nav-button.active {
+            background: rgba(0, 255, 255, 0.1);
+            color: var(--holo-cyan);
+            border-color: var(--holo-cyan);
+            box-shadow: var(--glow-primary);
+        }
+
+        .nav-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .nav-button:hover::before {
+            left: 100%;
+        }
+
+        /* Main Content Area */
+        .main-display {
+            grid-area: main;
+            background: var(--bg-panel);
+            border: var(--border-holo);
+            border-radius: 10px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .display-header {
             display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background: linear-gradient(120deg, #10131a 60%, #181c26 100%);
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: var(--border-holo);
         }
-        .dashboard {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 2.5rem 2.5rem 2rem 2.5rem;
-            gap: 2.2rem;
+
+        .display-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--holo-cyan);
+            text-shadow: var(--glow-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
-        .widgets {
-            display: flex;
-            gap: 2.2rem;
-            flex-wrap: wrap;
+
+        .refresh-button {
+            background: transparent;
+            border: var(--border-holo);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            font-family: 'Rajdhani', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
         }
-        .card {
-            background: var(--card);
-            border-radius: 22px;
-            box-shadow: 0 4px 32px #1bb6ff22, 0 1.5px 0 #23273a;
-            padding: 2rem 1.5rem 1.5rem 1.5rem;
-            border: 1.5px solid var(--border);
-            min-width: 300px;
-            flex: 1 1 340px;
-            max-width: 540px;
+
+        .refresh-button:hover {
+            color: var(--holo-cyan);
+            border-color: var(--holo-cyan);
+            box-shadow: var(--glow-secondary);
+        }
+
+        /* Alert Hologram Cards */
+        .alert-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        }
+
+        /* Styles pour les champs additionnels */
+        .alert-additional {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid var(--holo-cyan);
+        }
+
+        .alert-field {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .field-label {
+            color: var(--holo-cyan);
+            font-weight: 600;
+        }
+
+        .alert-tier {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        /* Animation pour les alertes urgentes */
+        @keyframes pulse-urgent {
+            0%, 100% {
+                box-shadow: 0 0 10px var(--holo-red);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 30px var(--holo-red);
+                transform: scale(1.02);
+            }
+        }
+
+        .alert-hologram {
+            background: var(--bg-glass);
+            border: var(--border-holo);
+            border-radius: 12px;
+            padding: 1.5rem;
             position: relative;
             backdrop-filter: blur(10px);
-            transition: box-shadow 0.2s, border-color 0.2s;
+            transition: all 0.3s ease;
+            animation: materialize 0.6s ease-out;
         }
-        .card h2 {
-            color: var(--primary);
-            font-family: 'Orbitron', Arial, sans-serif;
-            font-size: 1.18rem;
-            margin-top: 0;
-            letter-spacing: 1px;
-            font-weight: 700;
+
+        @keyframes materialize {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
-        .alert-list {
+
+        .alert-hologram:hover {
+            border-color: var(--holo-cyan);
+            box-shadow: var(--glow-primary);
+            transform: translateY(-5px);
+        }
+
+        .alert-hologram::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--holo-cyan), var(--holo-blue), var(--holo-purple));
+            border-radius: 12px 12px 0 0;
+        }
+
+        .alert-header {
             display: flex;
-            flex-direction: column;
-            gap: 1.3rem;
-            margin-top: 1.2rem;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
-        .alert {
-            display: flex;
-            align-items: flex-start;
-            gap: 1.1em;
-            background: linear-gradient(90deg, #1bb6ff33 0%, #7f5fff22 100%);
-            border-left: 4px solid var(--primary);
-            padding: 1.1rem 1.2rem 1.1rem 1.1rem;
-            border-radius: 14px;
-            box-shadow: 0 2px 16px #1bb6ff22, 0 0 0 0 #1bb6ff00;
-            color: var(--text);
-            position: relative;
-            transition: box-shadow 0.18s, border-color 0.18s, background 0.18s;
-            opacity: 0;
-            transform: translateY(20px) scale(0.98);
-            animation: alertin 0.7s cubic-bezier(.4,1.6,.6,1) forwards;
-        }
-        .alert:hover {
-            box-shadow: 0 4px 32px #1bb6ff55, 0 0 0 2px #1bb6ff33;
-            background: linear-gradient(90deg, #1bb6ff55 0%, #7f5fff33 100%);
-            z-index: 2;
-        }
-        @keyframes alertin { to { opacity: 1; transform: none; } }
-        .alert .avatar {
-            width: 38px; height: 38px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1bb6ff 60%, #7f5fff 100%);
+
+        .alert-avatar {
+            width: 50px;
+            height: 50px;
+            border: var(--border-holo);
+            border-radius: 8px;
+            background: var(--bg-command);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5em;
-            color: #fff;
-            box-shadow: 0 2px 8px #1bb6ff44;
-            flex-shrink: 0;
+            font-size: 1.5rem;
+            color: var(--holo-cyan);
+            text-shadow: var(--glow-primary);
+            position: relative;
         }
-        .alert-content {
+
+        .alert-avatar::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border: 1px solid var(--holo-cyan);
+            border-radius: 10px;
+            opacity: 0.3;
+            animation: avatar-pulse 2s infinite;
+        }
+
+        @keyframes avatar-pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        .alert-meta {
             flex: 1;
-            min-width: 0;
         }
-        .alert .user {
+
+        .alert-user {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
             font-weight: 700;
-            color: var(--primary);
-            font-family: 'Exo 2', Arial, sans-serif;
+            color: var(--holo-cyan);
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+        }
+
+        .alert-timestamp {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .alert-priority {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
             letter-spacing: 1px;
-            font-size: 1.08em;
         }
-        .alert .date {
-            color: var(--subtext);
-            font-size: 0.97em;
-            margin-left: 0.7em;
+
+        .priority-high {
+            background: rgba(255, 0, 64, 0.2);
+            color: var(--holo-red);
+            border: 1px solid var(--holo-red);
+            box-shadow: 0 0 10px rgba(255, 0, 64, 0.3);
         }
-        .alert .msg {
-            margin-top: 0.25em;
-            font-size: 1.11em;
-            color: var(--text);
-            font-family: 'Exo 2', Arial, sans-serif;
-            word-break: break-word;
+
+        .priority-medium {
+            background: rgba(255, 128, 0, 0.2);
+            color: var(--holo-orange);
+            border: 1px solid var(--holo-orange);
+            box-shadow: 0 0 10px rgba(255, 128, 0, 0.3);
         }
-        header {
-            background: var(--glass);
-            color: var(--primary);
-            padding: 0.7rem 2.2rem 0.5rem 2.2rem;
-            border-bottom: 1.5px solid var(--border);
+
+        .priority-low {
+            background: rgba(0, 255, 128, 0.2);
+            color: var(--holo-green);
+            border: 1px solid var(--holo-green);
+            box-shadow: 0 0 10px rgba(0, 255, 128, 0.3);
+        }
+
+        .alert-message {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 255, 255, 0.05);
+            border-left: 3px solid var(--holo-cyan);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* Systems Panel */
+        .systems-panel {
+            grid-area: systems;
+            background: var(--bg-panel);
+            border: var(--border-holo);
+            border-radius: 10px;
+            padding: 1.5rem;
             display: flex;
-            align-items: center;
-            gap: 1.2rem;
-            box-shadow: 0 2px 16px #1bb6ff11;
-            min-height: 56px;
+            flex-direction: column;
+            gap: 1.5rem;
         }
-        header h1 {
-            font-family: 'Orbitron', Arial, sans-serif;
-            font-size: 1.18rem;
-            letter-spacing: 2px;
-            margin: 0;
+
+        .system-module {
+            background: var(--bg-glass);
+            border: var(--border-holo);
+            border-radius: 8px;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .module-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
             font-weight: 700;
-            color: var(--primary);
-        }
-        .subtitle {
-            color: var(--secondary);
-            font-size: 1em;
-            margin-left: auto;
-            font-family: 'Exo 2', Arial, sans-serif;
+            color: var(--holo-cyan);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
             letter-spacing: 1px;
         }
-        @media (max-width: 900px) {
-            .dashboard { padding: 1.2rem 0.5rem; }
-            .widgets { flex-direction: column; gap: 1.2rem; }
+
+        .system-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
         }
-        @media (max-width: 600px) {
-            .sidebar { width: 54px; padding: 1rem 0; }
-            .sidebar svg { width: 32px; height: 32px; }
-            header { padding: 0.7rem 0.7rem; }
-            .dashboard { padding: 0.5rem 0.1rem; }
-            .card { padding: 1.1rem 0.5rem; min-width: 0; }
-            .alert-list { gap: 0.7rem; }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--holo-cyan), var(--holo-blue));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px var(--holo-cyan);
+        }
+
+        /* Diagnostic Buttons */
+        .diagnostic-button {
+            background: transparent;
+            border: var(--border-holo);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            padding: 0.8rem;
+            font-family: 'Rajdhani', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .diagnostic-button:hover {
+            color: var(--holo-cyan);
+            border-color: var(--holo-cyan);
+            box-shadow: var(--glow-secondary);
+        }
+
+        /* Status Messages */
+        .status-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-command);
+            border: var(--border-active);
+            border-radius: 10px;
+            padding: 1.5rem 2rem;
+            color: var(--text-primary);
+            font-family: 'Rajdhani', monospace;
+            font-weight: 600;
+            box-shadow: var(--glow-primary);
+            z-index: 10000;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .command-interface {
+                grid-template-areas:
+                    "header header"
+                    "nav main"
+                    "systems systems";
+                grid-template-columns: 120px 1fr;
+                grid-template-rows: 80px 1fr auto;
+            }
+
+            .systems-panel {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .command-interface {
+                grid-template-areas:
+                    "header"
+                    "nav"
+                    "main"
+                    "systems";
+                grid-template-columns: 1fr;
+                grid-template-rows: 80px auto 1fr auto;
+            }
+
+            .nav-panel {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+
+            .alert-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .systems-panel {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--holo-cyan);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Holographic Flicker */
+        .holo-flicker {
+            animation: flicker 0.15s infinite linear alternate;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 1; }
+            100% { opacity: 0.95; }
         }
     </style>
 </head>
-<body>
-    <nav class="sidebar">
-        <div class="logo">
-            <!-- Logo SVG stylisé -->
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="32" cy="32" r="28" fill="#10131a" stroke="#1bb6ff" stroke-width="3.5"/>
-                <rect x="28" y="16" width="8" height="32" rx="4" fill="#1bb6ff"/>
-                <rect x="16" y="28" width="32" height="8" rx="4" fill="#7f5fff"/>
-                <circle cx="32" cy="32" r="8" fill="#181c26" stroke="#ff3366" stroke-width="2"/>
-            </svg>
-        </div>
-        <div class="nav">
-            <button class="nav-btn active" title="Alertes">
-                <span>⏺️</span>
-            </button>
-            <button class="nav-btn" title="Statistiques">
-                <span>📊</span>
-            </button>
-            <button class="nav-btn" title="Paramètres">
-                <span>⚙️</span>
-            </button>
-        </div>
-    </nav>
-    <div class="main">
-        <header>
-            <h1>MedAlert</h1>
-            <div class="subtitle">Dashboard médical temps réel</div>
-        </header>
-        <div class="dashboard">
-            <div class="widgets" id="widgets">
-                <!-- Les widgets seront injectés ici selon l’onglet -->
+<body class="scanlines">
+    <div class="command-interface">
+        <!-- Header Command Bar -->
+        <header class="header-command">
+            <div class="logo-hologram holo-flicker">MEDALERT</div>
+            <div class="status-indicators">
+                <div class="status-indicator">
+                    <div class="status-dot online"></div>
+                    <span>SYSTEMS ONLINE</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot warning" id="connection-status"></div>
+                    <span>CONNECTING...</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot online"></div>
+                    <span>ALERTS ACTIVE</span>
+                </div>
             </div>
-        </div>
+        </header>
+
+        <!-- Navigation Panel -->
+        <nav class="nav-panel">
+            <button class="nav-button active" data-panel="alerts">
+                ⏺ ALERTS
+            </button>
+            <button class="nav-button" data-panel="medical">
+                ⚕ MEDICAL
+            </button>
+            <button class="nav-button" data-panel="analytics">
+                📊 ANALYTICS
+            </button>
+            <button class="nav-button" data-panel="systems">
+                ⚙ SYSTEMS
+            </button>
+            <button class="nav-button" data-panel="comms">
+                📡 COMMS
+            </button>
+        </nav>
+
+        <!-- Main Display -->
+        <main class="main-display">
+            <div class="display-header">
+                <h1 class="display-title" id="panel-title">MEDICAL ALERTS</h1>
+                <button class="refresh-button" onclick="refreshData()">
+                    ⟳ REFRESH
+                </button>
+            </div>
+            <div id="content-area">
+                <div class="alert-grid" id="alert-container">
+                    <!-- Alerts will be populated here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Systems Panel -->
+        <aside class="systems-panel">
+            <div class="system-module">
+                <div class="module-title">NETWORK STATUS</div>
+                <div class="system-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Backend</span>
+                        <span class="stat-value" id="backend-status">CONNECTING</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Discord</span>
+                        <span class="stat-value" id="discord-status">ACTIVE</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Database</span>
+                        <span class="stat-value" id="db-status">ONLINE</span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 85%"></div>
+                </div>
+            </div>
+
+            <div class="system-module">
+                <div class="module-title">ALERT METRICS</div>
+                <div class="system-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Alerts</span>
+                        <span class="stat-value" id="total-alerts">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Active</span>
+                        <span class="stat-value" id="active-alerts">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Priority High</span>
+                        <span class="stat-value" id="high-priority">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="system-module">
+                <div class="module-title">NOTIFICATIONS</div>
+                <div class="system-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Push Status</span>
+                        <span class="stat-value" id="push-status">CHECKING</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Sound</span>
+                        <span class="stat-value" id="sound-status">ENABLED</span>
+                    </div>
+                </div>
+                <button class="diagnostic-button" onclick="testNotifications()">
+                    TEST NOTIFICATIONS
+                </button>
+                <button class="diagnostic-button" onclick="enableNotifications()">
+                    ENABLE PUSH
+                </button>
+            </div>
+        </aside>
+
+        <!-- Footer -->
+        <footer style="position: fixed; bottom: 10px; right: 20px; color: var(--text-secondary); font-size: 0.8rem; opacity: 0.7; font-family: 'Orbitron', monospace;">
+            ampynjord - MedAlert
+        </footer>
     </div>
-    <div id="alert-status" style="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(30,40,60,0.95);color:#fff;padding:0.7em 1.5em;border-radius:18px;font-size:1em;box-shadow:0 2px 16px #1bb6ff55;display:none;"></div>
-    <button id="enable-alerts-btn" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--primary);color:#fff;border:none;border-radius:30px;padding:0.7em 2em;font-size:1.1em;box-shadow:0 2px 16px #1bb6ff55;display:none;">Activer les alertes</button>
-    <button id="push-status-btn" style="position:fixed;bottom:180px;left:50%;transform:translateX(-50%);z-index:9999;background:#00d4ff;color:#222;border:none;border-radius:30px;padding:0.6em 1.5em;font-size:1em;box-shadow:0 2px 16px #00d4ff55;">État abonnement push</button>
-    <div id="push-status-info" style="position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:9999;background:#23273aee;color:#fff;padding:0.7em 1.5em;border-radius:18px;font-size:0.95em;box-shadow:0 2px 16px #1bb6ff55;display:none;max-width:90vw;text-align:center;"></div>
-    <button id="test-notif-btn" style="position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--secondary);color:#fff;border:none;border-radius:30px;padding:0.6em 1.5em;font-size:1em;box-shadow:0 2px 16px #7f5fff55;">Tester notification</button>
-    <div id="pwa-ios-hint" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;background:#23273aee;color:#fff;padding:0.7em 1.5em;border-radius:18px;font-size:1em;box-shadow:0 2px 16px #1bb6ff55;display:none;max-width:90vw;text-align:center;"></div>
+
+    <!-- Status Message -->
+    <div id="status-message" class="status-message"></div>
+
+    <!-- Audio Element -->
     <audio id="alert-audio" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae5b2.mp3" preload="auto"></audio>
+
     <script>
-        // Navigation sidebar
-        const navBtns = document.querySelectorAll('.nav-btn');
-        let currentTab = 0;
-        function setTab(idx) {
-            navBtns.forEach((b,i)=>b.classList.toggle('active',i===idx));
-            currentTab = idx;
-            renderWidgets();
-        }
-        navBtns.forEach((b,i)=>b.onclick=()=>setTab(i));
-
-        function renderWidgets() {
-            const widgets = document.getElementById('widgets');
-            widgets.innerHTML = '';
-            if (currentTab === 0) {
-                // Alertes
-                widgets.innerHTML = `
-                <div class="card" style="max-width: 520px;">
-                    <h2>Alertes récentes</h2>
-                    <button class="refresh-btn" onclick="refreshAlerts()">⟳ Actualiser</button>
-                    <div id="alert-list" class="alert-list"></div>
-                </div>
-                `;
-                fetchAlerts();
-            } else if (currentTab === 1) {
-                // Statistiques
-                widgets.innerHTML = `
-                <div class="card">
-                    <h2>Statistiques</h2>
-                    <div style="color:var(--subtext);font-size:1.1em;">Module statistiques à venir…</div>
-                </div>
-                `;
-            } else if (currentTab === 2) {
-                // Paramètres
-                widgets.innerHTML = `
-                <div class="card">
-                    <h2>Paramètres</h2>
-                    <div style="color:var(--subtext);font-size:1.1em;">Module paramètres à venir…</div>
-                </div>
-                `;
-            }
-        }
-
-        // Détection de l’URL d’API backend (IP ou localhost, http ou https selon la page)
-        function getApiUrl() {
-            return '/api/alerts';
-        }
+        // Global State
+        let currentPanel = 'alerts';
         let lastAlertId = null;
-        async function fetchAlerts() {
-            const list = document.getElementById('alert-list');
-            if (!list) return;
-            list.innerHTML = '<div class="loader">Chargement…</div>';
-            try {
-                const apiUrl = getApiUrl();
-                const res = await fetch(apiUrl);
-                if (!res.ok) throw new Error('Erreur API ('+res.status+")");
-                const data = await res.json();
-                list.innerHTML = '';
-                if (!data.length) {
-                    list.innerHTML = '<div style="color:var(--subtext);text-align:center;">Aucune alerte</div>';
-                    lastAlertId = null;
-                    return;
-                }
-                // Détection nouvelle alerte
-                const newest = data[0];
-                if (lastAlertId && newest.id !== lastAlertId) {
-                    triggerAlertNotification(newest);
-                }
-                lastAlertId = newest.id;
-                data.slice(0,8).forEach(alert => {
-                    const user = alert.username || alert.author || 'Inconnu';
-                    const date = new Date(alert.createdAt || alert.date).toLocaleString('fr-FR');
-                    const msg = alert.originalMessage || alert.message;
-                    const avatar = user && user.length > 0 ? user[0].toUpperCase() : '👤';
-                    const icon = /medic|médecin|evac|secours|santé|inconscient|blessure|urgence/i.test(msg) ? '⚕️' : avatar;
-                    const html = `<div class="avatar">${icon}</div><div class="alert-content"><span class="user">${user}</span> <span class="date">${date}</span><div class="msg">${msg}</div></div>`;
-                    const el = document.createElement('div');
-                    el.className = 'alert';
-                    el.innerHTML = html;
-                    list.appendChild(el);
-                });
-            } catch (e) {
-                list.innerHTML = `<div class="error">Erreur de chargement des alertes<br><span style='font-size:0.95em;color:var(--subtext);'>${e.message}</span></div>`;
-            }
-        }
-        const statusDiv = document.getElementById('alert-status');
-        function showStatus(msg, ok=true) {
-            statusDiv.textContent = msg;
-            statusDiv.style.background = ok ? 'rgba(30,40,60,0.95)' : '#ff3366cc';
-            statusDiv.style.display = '';
-            setTimeout(()=>{ statusDiv.style.display = 'none'; }, 5000);
-        }
-        // Service worker pour notifications background
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).then(reg => {
-                showStatus('Service worker actif', true);
-                if (!navigator.serviceWorker.controller) {
-                    showStatus('Service worker non-contrôleur, rechargement…', false);
-                    window.location.reload();
-                }
-                console.log('Service worker enregistré', reg);
-            }).catch((err)=>{
-                showStatus('Service worker non supporté', false);
-                console.error('Erreur SW register:', err);
-            });
-        } else {
-            showStatus('Service worker non supporté', false);
-        }
-        // Bouton d’activation alertes (son/notification)
-        const enableBtn = document.getElementById('enable-alerts-btn');
-        function enableAlerts() {
-            if ('Notification' in window) {
-                Notification.requestPermission().then(p => {
-                    if (p === 'granted') {
-                        showStatus('Notifications activées', true);
-                    } else {
-                        showStatus('Notifications refusées', false);
-                    }
-                });
-            }
-            const audio = document.getElementById('alert-audio');
-            if (audio) { audio.volume = 1; audio.play().then(()=>{
-                showStatus('Son d’alerte activé', true);
-            }).catch(()=>{
-                showStatus('Le navigateur bloque le son tant que vous n’avez pas interagi.', false);
-            }); }
-            enableBtn.style.display = 'none';
-        }
-        // Affiche le bouton si permission notification non accordée ou audio bloqué
-        window.addEventListener('DOMContentLoaded', () => {
-            if (Notification.permission !== 'granted') enableBtn.style.display = '';
-            enableBtn.onclick = enableAlerts;
-
-            // Bouton diagnostic push
-            const pushStatusBtn = document.getElementById('push-status-btn');
-            const pushStatusInfo = document.getElementById('push-status-info');
-            if (pushStatusBtn && pushStatusInfo) {
-                pushStatusBtn.onclick = async () => {
-                    if ('serviceWorker' in navigator && 'PushManager' in window) {
-                        const reg = await navigator.serviceWorker.ready;
-                        const sub = await reg.pushManager.getSubscription();
-                        if (sub) {
-                            pushStatusInfo.style.display = '';
-                            pushStatusInfo.textContent = 'Abonnement push actif : ' + sub.endpoint.slice(0, 48) + '...';
-                        } else {
-                            pushStatusInfo.style.display = '';
-                            pushStatusInfo.textContent = 'Aucun abonnement push trouvé. Cliquez pour tenter de vous abonner.';
-                            // Tente l’abonnement
-                            try {
-                                const vapidRes = await fetch('/api/vapid-key');
-                                const vapid = await vapidRes.json();
-                                const subscribeOptions = {
-                                    userVisibleOnly: true,
-                                    applicationServerKey: urlBase64ToUint8Array(vapid.publicKey)
-                                };
-                                const subscription = await reg.pushManager.subscribe(subscribeOptions);
-                                await fetch('/api/subscribe', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(subscription)
-                                });
-                                pushStatusInfo.textContent = 'Abonnement push créé avec succès !';
-                            } catch (e) {
-                                pushStatusInfo.textContent = 'Erreur abonnement push : ' + e.message;
-                            }
-                        }
-                    } else {
-                        pushStatusInfo.style.display = '';
-                        pushStatusInfo.textContent = 'Push API non supportée sur ce navigateur.';
-                    }
-                };
-            }
-
-            // Abonnement Push API
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                navigator.serviceWorker.ready.then(async reg => {
-                    // Récupère la clé publique VAPID depuis le backend
-                    const vapidRes = await fetch('/api/vapid-key');
-                    const vapid = await vapidRes.json();
-                    const subscribeOptions = {
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(vapid.publicKey)
-                    };
-                    reg.pushManager.getSubscription().then(async sub => {
-                        if (!sub) {
-                            const subscription = await reg.pushManager.subscribe(subscribeOptions);
-                            // Envoie l’abonnement au backend
-                            await fetch('/api/subscribe', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(subscription)
-                            });
-                            console.log('Abonnement push enregistré');
-                        } else {
-                            console.log('Déjà abonné aux notifications push');
-                        }
-                    });
-                });
-            }
-
-            // Utilitaire pour décoder la clé VAPID
-            function urlBase64ToUint8Array(base64String) {
-                const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-                const rawData = window.atob(base64);
-                const outputArray = new Uint8Array(rawData.length);
-                for (let i = 0; i < rawData.length; ++i) {
-                    outputArray[i] = rawData.charCodeAt(i);
-                }
-                return outputArray;
-            }
-        });
-        // Diagnostic service worker et notification
-        const testBtn = document.getElementById('test-notif-btn');
-        testBtn.onclick = () => {
-            showStatus('Test notification en cours...', true);
-            try {
-                console.log('Notification.permission =', Notification.permission);
-                if (navigator.serviceWorker) {
-                    console.log('SW contrôleur ?', !!navigator.serviceWorker.controller, navigator.serviceWorker.controller);
-                }
-                triggerAlertNotification({
-                    username: 'Test',
-                    originalMessage: 'Ceci est un test de notification',
-                    createdAt: new Date().toISOString()
-                });
-            } catch (e) {
-                showStatus('Erreur JS : ' + e.message, false);
-                console.error('Erreur JS notification:', e);
-            }
+        let alertData = [];
+        let systemStats = {
+            totalAlerts: 0,
+            activeAlerts: 0,
+            highPriority: 0
         };
-        // Fallback notification directe si tout échoue
-        function triggerAlertNotification(alert) {
-            const user = alert.username || alert.author || 'Inconnu';
-            const msg = alert.originalMessage || alert.message;
-            const date = new Date(alert.createdAt || alert.date).toLocaleTimeString('fr-FR');
-            // Son
-            const audio = document.getElementById('alert-audio');
-            if (audio) { audio.currentTime = 0; audio.play().catch(()=>{}); }
-            // Notification push
-            if (window.Notification && Notification.permission === 'granted') {
-                let notifDone = false;
-                try {
-                    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({
-                            type: 'alert-notification',
-                            title: '🚨 Nouvelle alerte MedAlert',
-                            body: `${user} : ${msg}\n${date}`,
-                            icon: '/icon-192.png'
-                        });
-                        notifDone = true;
-                    }
-                } catch (e) {
-                    showStatus('Erreur SW : ' + e.message, false);
-                    console.error('Erreur SW:', e);
-                }
-                if (!notifDone) {
-                    // Attendre que le service worker soit prêt avant d'appeler showNotification
-                    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-                        navigator.serviceWorker.ready.then(function(reg) {
-                            if (reg && reg.showNotification) {
-                                reg.showNotification('🚨 Nouvelle alerte MedAlert', {
-                                    body: `${user} : ${msg}\n${date}`,
-                                    icon: '/icon-192.png',
-                                    vibrate: [200, 100, 200],
-                                    tag: 'medalert',
-                                    renotify: true
-                                });
-                                console.log('Notification SW envoyée');
-                                if (audio) { audio.currentTime = 0; audio.play().catch(()=>{}); }
-                                showStatus('Notification SW', true);
-                            } else {
-                                showStatus('Erreur : SW non prêt', false);
-                            }
-                        }).catch(function(e) {
-                            showStatus('Erreur SW.ready : ' + e.message, false);
-                            console.error('Erreur SW.ready:', e);
-                        });
-                    } else {
-                        showStatus('Notifications non autorisées ou non supportées', false);
-                    }
-                }
-            } else {
-                showStatus('Notifications non autorisées ou non supportées', false);
+
+        // Navigation System
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelector('.nav-button.active').classList.remove('active');
+                button.classList.add('active');
+                currentPanel = button.dataset.panel;
+                switchPanel(currentPanel);
+            });
+        });
+
+        function switchPanel(panel) {
+            const titleElement = document.getElementById('panel-title');
+            const contentArea = document.getElementById('content-area');
+
+            switch(panel) {
+                case 'alerts':
+                    titleElement.textContent = 'MEDICAL ALERTS';
+                    contentArea.innerHTML = '<div class="alert-grid" id="alert-container"></div>';
+                    loadAlerts();
+                    break;
+                case 'medical':
+                    titleElement.textContent = 'MEDICAL SYSTEMS';
+                    contentArea.innerHTML = '<div class="system-stats"><div class="stat-row"><span class="stat-label">Medical Module</span><span class="stat-value">COMING SOON</span></div></div>';
+                    break;
+                case 'analytics':
+                    titleElement.textContent = 'ANALYTICS SUITE';
+                    contentArea.innerHTML = '<div class="system-stats"><div class="stat-row"><span class="stat-label">Analytics Module</span><span class="stat-value">COMING SOON</span></div></div>';
+                    break;
+                case 'systems':
+                    titleElement.textContent = 'SYSTEM CONTROL';
+                    contentArea.innerHTML = '<div class="system-stats"><div class="stat-row"><span class="stat-label">System Control</span><span class="stat-value">COMING SOON</span></div></div>';
+                    break;
+                case 'comms':
+                    titleElement.textContent = 'COMMUNICATIONS';
+                    contentArea.innerHTML = '<div class="system-stats"><div class="stat-row"><span class="stat-label">Comms Module</span><span class="stat-value">COMING SOON</span></div></div>';
+                    break;
             }
         }
-        // Réception message du service worker pour jouer le son
-        if (navigator.serviceWorker) {
-            navigator.serviceWorker.addEventListener('message', event => {
-                if (event.data && event.data.type === 'play-alert-sound') {
-                    const audio = document.getElementById('alert-audio');
-                    if (audio) { audio.currentTime = 0; audio.play().catch(()=>{}); }
+
+        // Alert Loading System
+        async function loadAlerts() {
+            const container = document.getElementById('alert-container');
+            if (!container) return;
+
+            try {
+                showStatus('SCANNING FOR ALERTS...', true);
+                const response = await fetch('/api/alerts');
+
+                if (!response.ok) {
+                    throw new Error(`API ERROR: ${response.status}`);
+                }
+
+                const data = await response.json();
+                alertData = data;
+                updateSystemStats();
+                renderAlerts(data);
+
+                // Check for new alerts
+                if (data.length > 0) {
+                    const newest = data[0];
+                    if (lastAlertId && newest.id !== lastAlertId) {
+                        triggerNewAlertEffects(newest);
+                    }
+                    lastAlertId = newest.id;
+                }
+
+                showStatus('ALERT SCAN COMPLETE', true);
+                updateConnectionStatus('online');
+
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert-hologram" style="border-color: var(--holo-red);">
+                        <div class="alert-message" style="color: var(--holo-red); border-left-color: var(--holo-red);">
+                            CONNECTION ERROR<br>
+                            <span style="font-size: 0.8rem; opacity: 0.7;">${error.message}</span>
+                        </div>
+                    </div>
+                `;
+                showStatus('CONNECTION FAILED', false);
+                updateConnectionStatus('danger');
+            }
+        }
+
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alert-container');
+            if (!container) return;
+
+            if (alerts.length === 0) {
+                container.innerHTML = `
+                    <div class="alert-hologram">
+                        <div class="alert-message" style="text-align: center; color: var(--text-secondary);">
+                            NO ACTIVE ALERTS<br>
+                            <span style="font-size: 0.8rem; opacity: 0.7;">SYSTEM STANDBY</span>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            alerts.slice(0, 10).forEach((alert, index) => {
+                setTimeout(() => {
+                    const alertElement = createAlertElement(alert);
+                    container.appendChild(alertElement);
+                }, index * 100);
+            });
+        }
+
+        function createAlertElement(alert) {
+            const div = document.createElement('div');
+            div.className = 'alert-hologram';
+
+            const user = alert.username || 'UNKNOWN';
+            const timestamp = new Date(alert.createdAt).toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const message = alert.originalMessage || alert.message || 'NO MESSAGE';
+
+            // Utiliser les données structurées si disponibles
+            const tier = alert.tier || alert.injuryType || determineTierFromMessage(message);
+            const priority = alert.priority || determinePriority(message);
+            const motif = alert.motif || '';
+            const localisation = alert.location || '';
+            const equipe = alert.equipe || '';
+
+            const tierInfo = getTierInfo(tier);
+            const avatar = tierInfo.icon;
+
+            // Couleur de bordure selon le tier (T1=rouge, T2=orange, T3=jaune)
+            div.style.borderColor = tierInfo.color;
+            div.style.borderWidth = '2px';
+            div.style.borderStyle = 'solid';
+
+            // Animation et glow pour T1 (priorité la plus haute)
+            if (tier === 'T1') {
+                div.style.boxShadow = `0 0 20px ${tierInfo.color}, 0 0 40px ${tierInfo.color}40`;
+                div.style.animation = 'pulse-urgent 2s infinite';
+            } else {
+                div.style.boxShadow = `0 0 10px ${tierInfo.color}80`;
+            }
+
+            let additionalFields = '';
+            if (motif) {
+                additionalFields += `<div class="alert-field"><span class="field-label">📋 Motif:</span> ${motif}</div>`;
+            }
+            if (localisation) {
+                additionalFields += `<div class="alert-field"><span class="field-label">📍 Localisation:</span> ${localisation}</div>`;
+            }
+            if (equipe) {
+                additionalFields += `<div class="alert-field"><span class="field-label">👥 Équipe:</span> ${equipe}</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="alert-header">
+                    <div class="alert-avatar" style="color: ${tierInfo.color}; text-shadow: 0 0 10px ${tierInfo.color};">${avatar}</div>
+                    <div class="alert-meta">
+                        <div class="alert-user">${user}</div>
+                        <div class="alert-timestamp">${timestamp}</div>
+                    </div>
+                    <div class="alert-tier" style="background: ${tierInfo.color}20; color: ${tierInfo.color}; border: 1px solid ${tierInfo.color};">
+                        ${tier || 'N/A'}
+                    </div>
+                </div>
+                <div class="alert-message">${message}</div>
+                ${additionalFields ? `<div class="alert-additional">${additionalFields}</div>` : ''}
+            `;
+
+            return div;
+        }
+
+        // Fonction pour obtenir les infos du tier (T1-T3)
+        function getTierInfo(tier) {
+            const tierData = {
+                'T1': {
+                    name: 'Blessure grave',
+                    color: '#FF0000', // Rouge pour T1 (priorité haute)
+                    icon: '🔴',
+                    priority: 'high'
+                },
+                'T2': {
+                    name: 'Blessure modérée',
+                    color: '#FF8000', // Orange pour T2 (priorité moyenne)
+                    icon: '🔶',
+                    priority: 'medium'
+                },
+                'T3': {
+                    name: 'Blessure légère',
+                    color: '#FFFF00', // Jaune pour T3 (priorité basse)
+                    icon: '⚠️',
+                    priority: 'low'
+                }
+            };
+
+            return tierData[tier] || {
+                name: 'Non défini',
+                color: '#00ffff',
+                icon: '❓',
+                priority: 'medium'
+            };
+        }
+
+        // Fonction pour déterminer le tier depuis le message (T1-T3)
+        function determineTierFromMessage(message) {
+            const text = message.toLowerCase();
+            if (text.includes('[t3]') || text.includes('grave') || text.includes('urgence')) return 'T3';
+            if (text.includes('[t2]') || text.includes('modérée') || text.includes('blessure')) return 'T2';
+            if (text.includes('[t1]') || text.includes('légère') || text.includes('mineur')) return 'T1';
+            return null;
+        }
+
+        function determinePriority(message) {
+            const text = message.toLowerCase();
+            if (text.includes('urgence') || text.includes('critique') || text.includes('inconscient') || text.includes('danger')) {
+                return 'high';
+            } else if (text.includes('blessure') || text.includes('aide') || text.includes('evac')) {
+                return 'medium';
+            }
+            return 'low';
+        }
+
+        function getAlertIcon(message) {
+            const text = message.toLowerCase();
+            if (text.includes('medic') || text.includes('médecin') || text.includes('secours')) return '⚕️';
+            if (text.includes('evac') || text.includes('evacuation')) return '🚁';
+            if (text.includes('urgence') || text.includes('critique')) return '🚨';
+            if (text.includes('blessure') || text.includes('inconscient')) return '🩹';
+            return '📍';
+        }
+
+        function updateSystemStats() {
+            systemStats.totalAlerts = alertData.length;
+            systemStats.activeAlerts = alertData.filter(alert => {
+                const age = Date.now() - new Date(alert.createdAt).getTime();
+                return age < 24 * 60 * 60 * 1000; // Less than 24 hours
+            }).length;
+            systemStats.highPriority = alertData.filter(alert =>
+                determinePriority(alert.originalMessage || alert.message || '') === 'high'
+            ).length;
+
+            document.getElementById('total-alerts').textContent = systemStats.totalAlerts;
+            document.getElementById('active-alerts').textContent = systemStats.activeAlerts;
+            document.getElementById('high-priority').textContent = systemStats.highPriority;
+        }
+
+        function updateConnectionStatus(status) {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = statusDot.parentElement.querySelector('span');
+
+            statusDot.className = `status-dot ${status}`;
+            switch(status) {
+                case 'online':
+                    statusText.textContent = 'CONNECTED';
+                    document.getElementById('backend-status').textContent = 'ONLINE';
+                    break;
+                case 'warning':
+                    statusText.textContent = 'CONNECTING...';
+                    document.getElementById('backend-status').textContent = 'SYNCING';
+                    break;
+                case 'danger':
+                    statusText.textContent = 'OFFLINE';
+                    document.getElementById('backend-status').textContent = 'ERROR';
+                    break;
+            }
+        }
+
+        function triggerNewAlertEffects(alert) {
+            // Sound effect
+            const audio = document.getElementById('alert-audio');
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
+            }
+
+            // Visual notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification('🚨 NOUVELLE ALERTE MEDICALE', {
+                    body: `${alert.username}: ${alert.originalMessage}`,
+                    icon: '/icon-192.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'medalert'
+                });
+
+                setTimeout(() => notification.close(), 5000);
+            }
+
+            showStatus('NOUVELLE ALERTE REÇUE', true);
+        }
+
+        function showStatus(message, success = true) {
+            const statusElement = document.getElementById('status-message');
+            statusElement.textContent = message;
+            statusElement.style.borderColor = success ? 'var(--holo-cyan)' : 'var(--holo-red)';
+            statusElement.style.color = success ? 'var(--text-primary)' : 'var(--holo-red)';
+            statusElement.style.display = 'block';
+
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+
+        // Utility Functions
+        function refreshData() {
+            if (currentPanel === 'alerts') {
+                loadAlerts();
+            }
+            showStatus('DATA REFRESH INITIATED', true);
+        }
+
+        function testNotifications() {
+            triggerNewAlertEffects({
+                username: 'SYSTEM',
+                originalMessage: 'Test de notification système',
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        async function enableNotifications() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                document.getElementById('push-status').textContent =
+                    permission === 'granted' ? 'ENABLED' : 'DENIED';
+                showStatus(`NOTIFICATIONS ${permission.toUpperCase()}`, permission === 'granted');
+            }
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                    showStatus('SERVICE WORKER ACTIVE', true);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                    showStatus('SERVICE WORKER FAILED', false);
+                });
+        }
+
+        // Push Notification Setup
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            navigator.serviceWorker.ready.then(async registration => {
+                try {
+                    const vapidResponse = await fetch('/api/vapid-key');
+                    const vapidData = await vapidResponse.json();
+
+                    const subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+                    });
+
+                    await fetch('/api/subscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(subscription)
+                    });
+
+                    document.getElementById('push-status').textContent = 'ACTIVE';
+                    showStatus('PUSH NOTIFICATIONS ENABLED', true);
+                } catch (error) {
+                    document.getElementById('push-status').textContent = 'ERROR';
+                    console.error('Push subscription failed:', error);
                 }
             });
         }
-        // Détection iOS et invitation à installer la PWA
-        function isIos() {
-            return /iphone|ipad|ipod/i.test(navigator.userAgent);
-        }
-        function isInStandaloneMode() {
-            return ('standalone' in window.navigator) && window.navigator.standalone;
-        }
-        const pwaHint = document.getElementById('pwa-ios-hint');
-        window.addEventListener('DOMContentLoaded', () => {
-            // Affiche l’état SW/Notif au chargement
-            setTimeout(() => {
-                let msg = 'Notification: ' + Notification.permission;
-                if (navigator.serviceWorker) {
-                    msg += ' | SW contrôleur: ' + (!!navigator.serviceWorker.controller);
-                }
-                showStatus(msg, Notification.permission === 'granted');
-            }, 800);
-            // Affiche l’invitation iOS si besoin
-            if (isIos() && !isInStandaloneMode()) {
-                pwaHint.style.display = '';
-                pwaHint.innerHTML = 'Pour recevoir les notifications sur iOS, ajoutez MedAlert à l’écran d’accueil via <b>Partager &gt; Sur l’écran d’accueil</b>.';
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
             }
-            // Affiche un message si Notification API non dispo
-            if (!('Notification' in window)) {
-                showStatus('Notifications push non supportées sur ce navigateur.', false);
+            return outputArray;
+        }
+
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', () => {
+            updateConnectionStatus('warning');
+            loadAlerts();
+
+            // Auto-refresh every 10 seconds
+            setInterval(() => {
+                if (currentPanel === 'alerts') {
+                    loadAlerts();
+                }
+            }, 10000);
+
+            // Request notification permission on load
+            if ('Notification' in window && Notification.permission === 'default') {
+                setTimeout(enableNotifications, 2000);
             }
         });
-        // Initialisation
-        renderWidgets();
-        setInterval(()=>{ if(currentTab===0) fetchAlerts(); }, 10000);
-        // Notification push (si supporté)
-        if ('Notification' in window && Notification.permission !== 'denied') {
-            Notification.requestPermission();
-        }
     </script>
 </body>
 </html>

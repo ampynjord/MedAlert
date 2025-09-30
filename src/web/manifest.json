@@ -1,51 +1,30 @@
-{{
+{
+  "name": "MedAlert - Star Citizen Medical Interface",
+  "short_name": "MedAlert",
+  "description": "Interface professionnelle pour alertes médicales Star Citizen avec notifications push",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#00d4ff",
+  "background_color": "#0a0e1a",
+  "scope": "/",
+  "lang": "fr",
 
-  "name": "MedAlert",  "name": "MedAlert - Star Citizen Medical Interface",
-
-  "short_name": "MedAlert",  "short_name": "MedAlert",
-
-  "start_url": ".",  "description": "Interface professionnelle pour alertes médicales Star Citizen avec notifications push",
-
-  "display": "standalone",  "start_url": "/",
-
-  "background_color": "#f7f7fa",  "display": "standalone",
-
-  "theme_color": "#2d7be5",  "orientation": "portrait-primary",
-
-  "description": "Tableau de bord des alertes médicales MedAlert.",  "theme_color": "#00d4ff",
-
-  "icons": [  "background_color": "#0a0e1a",
-
-    {  "scope": "/",
-
-      "src": "icon-192.png",  "lang": "fr",
-
-      "sizes": "192x192",  
-
-      "type": "image/png"  "icons": [
-
-    },    {
-
-    {      "src": "icon-192.svg",
-
-      "src": "icon-512.png",      "sizes": "192x192",
-
-      "sizes": "512x512",      "type": "image/svg+xml",
-
-      "type": "image/png"      "purpose": "any maskable"
-
-    }    },
-
-  ]    {
-
-}      "src": "icon-512.svg",
-
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%23000'/%3E%3Ctext x='96' y='120' font-size='80' text-anchor='middle' fill='%2300d4ff'%3E⚕️%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23000'/%3E%3Ctext x='256' y='320' font-size='200' text-anchor='middle' fill='%2300d4ff'%3E⚕️%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
-  
+
   "categories": ["medical", "utilities", "productivity"],
   "screenshots": [
     {
@@ -58,7 +37,7 @@
 
   "features": [
     "Notifications temps réel",
-    "Interface tactile optimisée", 
+    "Interface tactile optimisée",
     "Mode hors ligne",
     "Sons d'alerte personnalisés"
   ],
