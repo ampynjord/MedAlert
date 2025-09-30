@@ -14,22 +14,28 @@ if [ ! -f "$CERT_DIR/localhost-cert.pem" ] || [ ! -f "$CERT_DIR/localhost-key.pe
   openssl req -x509 -nodes -days $DAYS -newkey rsa:2048 \
     -keyout "$CERT_DIR/localhost-key.pem" \
     -out "$CERT_DIR/localhost-cert.pem" \
-    -subj "/C=FR/ST=Bretagne/L=Rennes/O=MedAlert/CN=localhost" \
+    -subj "/C=XX/O=MedAlert/CN=localhost" \
     -addext "subjectAltName=DNS:localhost,DNS:*.localhost,IP:127.0.0.1"
   echo "✅ Certificats localhost créés"
 else
   echo "✅ Certificats localhost déjà existants"
 fi
 
-# Générer pour le domaine si défini
+# Générer pour medalert.ampynjord.bzh uniquement
 if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "localhost" ]; then
+  # Vérifier que le domaine est autorisé
+  if [[ "$DOMAIN" != "medalert.ampynjord.bzh" ]]; then
+    echo "❌ ERREUR: Seul medalert.ampynjord.bzh est autorisé comme domaine"
+    exit 1
+  fi
+
   if [ ! -f "$CERT_DIR/${DOMAIN}-cert.pem" ] || [ ! -f "$CERT_DIR/${DOMAIN}-key.pem" ]; then
     echo "📝 Génération des certificats pour $DOMAIN..."
     openssl req -x509 -nodes -days $DAYS -newkey rsa:2048 \
       -keyout "$CERT_DIR/${DOMAIN}-key.pem" \
       -out "$CERT_DIR/${DOMAIN}-cert.pem" \
-      -subj "/C=FR/ST=Bretagne/L=Rennes/O=MedAlert/CN=$DOMAIN" \
-      -addext "subjectAltName=DNS:$DOMAIN,DNS:*.$DOMAIN"
+      -subj "/C=XX/O=MedAlert/CN=$DOMAIN" \
+      -addext "subjectAltName=DNS:medalert.ampynjord.bzh,DNS:*.medalert.ampynjord.bzh"
     echo "✅ Certificats $DOMAIN créés"
   else
     echo "✅ Certificats $DOMAIN déjà existants"
