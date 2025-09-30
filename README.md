@@ -332,21 +332,6 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 ---
 
-### 📞 Support
-
-- **Issues GitHub** : Signaler des bugs ou demander des fonctionnalités
-- **Discord** : Rejoindre le serveur de support MedAlert
-- **Documentation** : Wiki complet disponible
-
-### 🔮 Feuille de route
-
-- [ ] **Mobile App** native avec Capacitor
-- [ ] **Analytics avancées** avec graphiques temps réel
-- [ ] **Géolocalisation** Star Citizen (systèmes/planètes)
-- [ ] **Intégration** avec d'autres outils communautaires
-- [ ] **Multi-langue** (EN, FR, DE, ES)
-- [ ] **API publique** pour développeurs tiers
-
 **Version actuelle :** 2.1.0 - Système T1-T3 Optimisé
 **Dernière mise à jour :** Septembre 2025
 **Développeur :** ampynjord
