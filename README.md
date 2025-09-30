@@ -11,15 +11,25 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
 
 ### 📋 Prérequis
 - 🐳 Docker Desktop
-- 🤖 Token Discord Bot ([Discord Developer Portal](https://discord.com/developers/applications))
+- 🤖 Bot Discord (instructions ci-dessous)
+
+### 🤖 Créer le bot Discord
+1. **Aller sur** https://discord.com/developers/applications
+2. **Cliquer** sur "New Application"
+3. **Nommer** votre application (ex: "MedAlert")
+4. **Aller** dans l'onglet "Bot"
+5. **Cliquer** sur "Add Bot"
+6. **Copier** le token (bouton "Copy" sous "Token")
+7. **Noter** l'Application ID depuis l'onglet "General Information"
 
 ### ⚙️ Configuration
 1. 📥 Cloner le projet
-2. 🔧 Configurer le bot Discord dans `src/discord/.env`:
+2. 🔧 Créer le fichier `src/discord/.env` avec :
    ```env
-   DISCORD_TOKEN=VOTRE_TOKEN_DISCORD
-   CLIENT_ID=VOTRE_CLIENT_ID
+   DISCORD_TOKEN=votre_token_copié_étape_6
+   CLIENT_ID=votre_application_id_étape_7
    API_BASE_URL=http://backend:3000
+   NODE_ENV=development
    ```
 3. 🚀 Lancer l'écosystème:
    ```bash
@@ -34,10 +44,12 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
 
 ### 🤖 Discord
 **Inviter le bot :**
-1. Récupérer le `CLIENT_ID` depuis `src/discord/.env`
+1. Copier votre `CLIENT_ID` depuis `src/discord/.env`
 2. Aller sur https://discordapi.com/permissions.html#0
-3. Sélectionner les permissions : `Send Messages`, `Use Slash Commands`, `Embed Links`
-4. Utiliser l'URL générée pour inviter le bot
+3. Coller votre CLIENT_ID dans le champ "Client ID"
+4. Sélectionner les permissions : `Send Messages`, `Use Slash Commands`, `Embed Links`
+5. Copier l'URL générée et l'ouvrir dans votre navigateur
+6. Sélectionner votre serveur Discord et autoriser le bot
 
 **Commande `/alert` :**
 ```bash
