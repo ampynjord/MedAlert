@@ -332,6 +332,6 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 ---
 
-**Version actuelle :** 2.1.0 - Système T1-T3 Optimisé
+**Version actuelle :** 1.0
 **Dernière mise à jour :** Septembre 2025
 **Développeur :** ampynjord
