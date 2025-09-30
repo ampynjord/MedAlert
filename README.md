@@ -32,7 +32,18 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
    API_BASE_URL=http://backend:3000
    NODE_ENV=development
    ```
-3. 🚀 Lancer l'écosystème:
+3. 🔐 Générer les certificats SSL (pour HTTPS) :
+   ```bash
+   # Créer le répertoire certs s'il n'existe pas
+   mkdir -p certs
+
+   # Générer un certificat auto-signé pour localhost
+   openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
+     -keyout certs/localhost-key.pem \
+     -out certs/localhost-cert.pem \
+     -subj "/CN=localhost"
+   ```
+4. 🚀 Lancer l'écosystème:
    ```bash
    docker-compose up --build
    ```
@@ -120,6 +131,10 @@ POST /api/subscribe           # S'abonner aux notifications
 
 ### 🐳 Scripts Docker
 ```bash
+# Ajouter l'utilisateur au groupe docker (Linux/Debian)
+sudo usermod -aG docker debian
+# Redémarrer la session pour appliquer les changements
+
 # Démarrer
 docker-compose up --build
 
