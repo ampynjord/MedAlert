@@ -12,6 +12,7 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
 ### 📋 Prérequis
 - 🐳 Docker Desktop
 - 🤖 Bot Discord (instructions ci-dessous)
+- 🦊 **Firefox** (recommandé pour les notifications push)
 
 ### 🤖 Créer le bot Discord
 1. **Aller sur** https://discord.com/developers/applications
@@ -39,6 +40,22 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
 ### 🌐 Accès
 - 🖥️ **Interface web** : http://localhost:8090
 - 🔗 **API** : http://localhost:3000/health
+
+### 🔔 Configuration des notifications push
+
+**⚠️ Important pour recevoir les alertes :**
+
+**Windows :**
+1. **Paramètres Windows** → **Système** → **Notifications et actions**
+2. **Activer** "Obtenir des notifications de la part des applications et des expéditeurs"
+3. **Trouver Firefox** dans la liste et **l'activer**
+4. **Désactiver** le mode "Ne pas déranger" si activé
+
+**Firefox :**
+1. **Ouvrir** http://localhost:8090
+2. **Autoriser** les notifications quand Firefox demande
+3. **Si refusé**, aller dans **Paramètres** → **Vie privée et sécurité** → **Permissions** → **Notifications**
+4. **Ajouter** `http://localhost:8090` et **Autoriser**
 
 ## 🎯 Utilisation
 
