@@ -45,7 +45,7 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
    ```
 4. 🚀 Lancer l'écosystème:
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 ### 🌐 Accès
