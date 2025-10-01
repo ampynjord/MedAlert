@@ -609,7 +609,7 @@ addSystemLog('info', 'Service Worker: active');
 addSystemLog('success', 'Push notifications: enabled');
 
 // Endpoint pour récupérer les statistiques système (admin only)
-app.get('/api/system/stats', requireRole('admin'), (req, res) => {
+app.get('/api/system/stats', verifyToken, requireRole('admin'), (req, res) => {
   try {
     const uptime = Math.floor((Date.now() - serverStartTime) / 1000); // en secondes
     const uptimeHours = Math.floor(uptime / 3600);
@@ -670,7 +670,7 @@ app.get('/api/system/stats', requireRole('admin'), (req, res) => {
 });
 
 // Endpoint pour récupérer les logs système (admin only)
-app.get('/api/system/logs', requireRole('admin'), (req, res) => {
+app.get('/api/system/logs', verifyToken, requireRole('admin'), (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const logs = systemLogs.slice(0, limit);
@@ -682,7 +682,7 @@ app.get('/api/system/logs', requireRole('admin'), (req, res) => {
 });
 
 // Endpoint pour les performances système (admin only)
-app.get('/api/system/performance', requireRole('admin'), (req, res) => {
+app.get('/api/system/performance', verifyToken, requireRole('admin'), (req, res) => {
   try {
     const mem = process.memoryUsage();
     const cpuUsage = process.cpuUsage();

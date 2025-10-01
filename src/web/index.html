@@ -2483,9 +2483,31 @@
                 console.log(`📡 Réponse API logs: ${response.status} ${response.statusText}`);
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        console.warn('🚫 Token JWT invalide ou expiré');
+                        logsContainer.innerHTML = `
+                            <div style="color: var(--tier-t2); text-align: center;">
+                                ⚠️ Session expirée
+                                <div style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-secondary);">
+                                    Veuillez vous reconnecter
+                                </div>
+                                <button onclick="location.href='/login.html'" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--holo-cyan); border: none; border-radius: 6px; color: #000; font-weight: 700; cursor: pointer;">
+                                    RECONNECTER
+                                </button>
+                            </div>
+                        `;
+                        return;
+                    }
                     if (response.status === 403) {
                         console.warn('🚫 Accès refusé - Vérifiez que vous avez le rôle admin');
-                        logsContainer.innerHTML = '<div style="color: var(--tier-t2); text-align: center;">⚠️ Accès refusé - Rôle admin requis</div>';
+                        logsContainer.innerHTML = `
+                            <div style="color: var(--tier-t2); text-align: center;">
+                                ⚠️ Accès refusé - Rôle admin requis
+                                <div style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-secondary);">
+                                    Votre compte n'a pas les permissions nécessaires
+                                </div>
+                            </div>
+                        `;
                         return;
                     }
                     throw new Error(`HTTP ${response.status}`);
