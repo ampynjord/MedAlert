@@ -65,6 +65,8 @@ services:
       - "${PUBLIC_NGINX_ALT_PORT:-8444}:8443"
     environment:
       - DOMAIN=${DOMAIN:-localhost}
+      - PRODUCTION_DOMAIN=${PRODUCTION_DOMAIN:-medalert.ampynjord.bzh}
+      - BLOCKED_DOMAIN=${BLOCKED_DOMAIN:-ampynjord.bzh}
     env_file:
       - .env
     volumes:
