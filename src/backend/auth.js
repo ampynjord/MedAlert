@@ -31,6 +31,7 @@ passport.use(new DiscordStrategy({
     scope: ['identify', 'email', 'guilds']
 }, (accessToken, refreshToken, profile, done) => {
     // Le profil Discord contient toutes les infos utilisateur
+    console.log('✅ Authentification Discord réussie pour:', profile.username);
     const user = {
         discordId: profile.id,
         username: profile.username,

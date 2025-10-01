@@ -214,9 +214,14 @@ app.get('/auth/discord/callback',
   }
 );
 
-// Route d'erreur d'authentification
+// Route d'erreur d'authentification avec plus de détails
 app.get('/auth/error', (req, res) => {
-  res.status(401).json({ error: 'Échec de l\'authentification' });
+  console.error('❌ Erreur OAuth2 Discord:', req.session?.passport?.error || 'Erreur inconnue');
+  res.status(401).json({ 
+    error: 'Échec de l\'authentification Discord',
+    details: 'Vérifiez que l\'URL de callback est bien configurée dans Discord Developer Portal',
+    callbackUrl: `${process.env.BACKEND_AUTH_URL}/auth/discord/callback`
+  });
 });
 
 // Route pour vérifier si l'utilisateur est authentifié
