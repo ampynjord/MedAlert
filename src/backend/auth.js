@@ -32,6 +32,17 @@ const discordStrategy = new DiscordStrategy({
 }, (accessToken, refreshToken, profile, done) => {
     // Le profil Discord contient toutes les infos utilisateur
     console.log('✅ Authentification Discord réussie pour:', profile.username);
+    
+    // Vérifier que l'utilisateur fait partie du serveur requis
+    const REQUIRED_GUILD_ID = process.env.DISCORD_GUILD_ID;
+    const userGuilds = profile.guilds || [];
+    const isInRequiredGuild = userGuilds.some(guild => guild.id === REQUIRED_GUILD_ID);
+    
+    if (REQUIRED_GUILD_ID && !isInRequiredGuild) {
+        console.warn(`⚠️  Utilisateur ${profile.username} n'est pas membre du serveur requis (${REQUIRED_GUILD_ID})`);
+        return done(null, false, { message: 'not_in_guild' });
+    }
+    
     const user = {
         discordId: profile.id,
         username: profile.username,
@@ -72,7 +83,8 @@ function generateToken(user) {
         username: user.username,
         discriminator: user.discriminator,
         avatar: user.avatar,
-        email: user.email
+        email: user.email,
+        roles: user.roles || ['medic'] // Rôles par défaut
     };
 
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
@@ -127,10 +139,33 @@ function requireGuild(guildId) {
     };
 }
 
+// Middleware pour vérifier les rôles
+function requireRole(...allowedRoles) {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'Non authentifié' });
+        }
+
+        const userRoles = req.user.roles || [];
+        const hasRole = allowedRoles.some(role => userRoles.includes(role));
+
+        if (!hasRole) {
+            return res.status(403).json({ 
+                error: 'Accès refusé',
+                message: `Rôle requis: ${allowedRoles.join(' ou ')}`,
+                userRoles: userRoles
+            });
+        }
+
+        next();
+    };
+}
+
 module.exports = {
     passport,
     generateToken,
     verifyToken,
     optionalAuth,
-    requireGuild
+    requireGuild,
+    requireRole
 };

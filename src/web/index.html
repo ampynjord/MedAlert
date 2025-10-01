@@ -775,8 +775,14 @@
             <button class="nav-button active" data-panel="alerts">
                 ⏺ ALERTS
             </button>
+            <button class="nav-button" data-panel="my-assignments">
+                📋 MES ALERTES
+            </button>
             <button class="nav-button" data-panel="medical">
                 ⚕ MEDICAL
+            </button>
+            <button class="nav-button" data-panel="users">
+                👥 USERS
             </button>
             <button class="nav-button" data-panel="analytics">
                 📊 ANALYTICS
@@ -880,6 +886,64 @@
     <audio id="alert-audio" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae5b2.mp3" preload="auto"></audio>
 
     <script>
+        // Fonction pour appliquer les restrictions d'accès basées sur les rôles
+        function applyRoleBasedAccess() {
+            const roles = window.userRoles || ['medic'];
+            const isAdmin = roles.includes('admin');
+            const isMedic = roles.includes('medic');
+
+            console.log('🔐 Application des permissions:', { isAdmin, isMedic, roles });
+
+            // Modules accessibles selon les rôles
+            const modulePermissions = {
+                'alerts': isMedic || isAdmin,          // Medic et Admin
+                'my-assignments': isMedic || isAdmin,  // Medic et Admin
+                'medical': isMedic || isAdmin,         // Medic et Admin
+                'users': isAdmin,                      // Admin uniquement
+                'analytics': isAdmin,                  // Admin uniquement
+                'systems': isAdmin,                    // Admin uniquement
+                'comms': isAdmin                       // Admin uniquement (si ajouté)
+            };
+
+            // Masquer les boutons de navigation non autorisés
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                const panel = btn.dataset.panel;
+                if (modulePermissions[panel] === false) {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = 'block';
+                }
+            });
+
+            // Si l'utilisateur n'est pas admin et qu'il essaie d'accéder à un module admin
+            const currentPanel = document.querySelector('.nav-button.active')?.dataset.panel;
+            if (currentPanel && modulePermissions[currentPanel] === false) {
+                // Rediriger vers Alerts (accessible à tous)
+                switchPanel('alerts');
+            }
+        }
+
+        // Vérifier les permissions avant de changer de panneau
+        function checkPanelAccess(panelName) {
+            const roles = window.userRoles || ['medic'];
+            const isAdmin = roles.includes('admin');
+            const isMedic = roles.includes('medic');
+
+            const permissions = {
+                'alerts': isMedic || isAdmin,
+                'my-assignments': isMedic || isAdmin,
+                'medical': isMedic || isAdmin,
+                'users': isAdmin,
+                'analytics': isAdmin,
+                'systems': isAdmin,
+                'comms': isAdmin
+            };
+
+            return permissions[panelName] !== false;
+        }
+    </script>
+
+    <script>
         // ========================================
         // VÉRIFICATION AUTHENTIFICATION (OBLIGATOIRE)
         // ========================================
@@ -931,13 +995,18 @@
 
                 const data = await response.json();
                 window.currentUser = data.user;
-                console.log('✅ Utilisateur authentifié:', data.user.username);
+                window.userRoles = data.roles || ['medic'];
+                console.log('✅ Utilisateur authentifié:', data.user.username, '| Rôles:', window.userRoles);
 
-                // Afficher le nom d'utilisateur dans le header
+                // Afficher le nom d'utilisateur et rôle dans le header
                 const userInfo = document.getElementById('user-info');
                 if (userInfo) {
-                    userInfo.textContent = `👤 ${data.user.username}`;
+                    const roleDisplay = window.userRoles.includes('admin') ? '👑 ADMIN' : '⚕️ MEDIC';
+                    userInfo.innerHTML = `${roleDisplay} <span style="opacity: 0.7; margin-left: 0.5rem;">${data.user.username}</span>`;
                 }
+
+                // Masquer les modules selon les rôles
+                applyRoleBasedAccess();
 
                 // Initialiser l'application une fois authentifié
                 initApp();
@@ -1005,6 +1074,13 @@
         });
 
         function switchPanel(panel) {
+            // Vérifier les permissions avant de changer de panneau
+            if (!checkPanelAccess(panel)) {
+                showStatus('⛔ ACCÈS REFUSÉ - Permissions insuffisantes', false);
+                console.warn('🚫 Tentative d\'accès non autorisé au module:', panel);
+                return;
+            }
+
             const titleElement = document.getElementById('panel-title');
             const contentArea = document.getElementById('content-area');
 
@@ -1019,9 +1095,17 @@
                         loadAlerts();
                     }
                     break;
+                case 'my-assignments':
+                    titleElement.textContent = 'MES ALERTES PRISES EN CHARGE';
+                    renderMyAssignments();
+                    break;
                 case 'medical':
                     titleElement.textContent = 'MEDICAL SYSTEMS';
                     renderMedicalSystems();
+                    break;
+                case 'users':
+                    titleElement.textContent = 'GESTION DES UTILISATEURS';
+                    renderUsersManagement();
                     break;
                 case 'analytics':
                     titleElement.textContent = 'ANALYTICS SUITE';
@@ -1235,6 +1319,11 @@
                 additionalFields += `<div class="alert-field"><span class="field-label">👥 Équipe:</span> ${equipe}</div>`;
             }
 
+            // Info d'assignation
+            const isAssigned = alert.assignedTo !== null && alert.assignedTo !== undefined;
+            const isAssignedToMe = isAssigned && alert.assignedTo === window.currentUser?.discordId;
+            const assignedInfo = isAssigned ? `<div class="alert-field" style="color: ${isAssignedToMe ? '#2ECC71' : '#3498DB'}; font-weight: 600;"><span class="field-label">👤 Pris en charge par:</span> ${alert.assignedToUsername} ${isAssignedToMe ? '(Vous)' : ''}</div>` : '';
+
             div.innerHTML = `
                 ${!isRead ? '<div class="read-indicator"></div>' : ''}
                 <div class="alert-header">
@@ -1249,10 +1338,20 @@
                 </div>
                 <div class="alert-message">${message}</div>
                 ${additionalFields ? `<div class="alert-additional">${additionalFields}</div>` : ''}
+                ${assignedInfo ? `<div class="alert-additional" style="border-left-color: ${isAssignedToMe ? '#2ECC71' : '#3498DB'};">${assignedInfo}</div>` : ''}
                 <div class="alert-actions">
                     <button class="alert-action-btn read-btn" data-action="read" data-alert-id="${alert.id}">
                         ${isRead ? '📧 MARQUER NON LU' : '✓ MARQUER LU'}
                     </button>
+                    ${!isAssigned ? `
+                        <button class="alert-action-btn assign-btn" data-action="assign" data-alert-id="${alert.id}" style="border-color: #2ECC71; color: #2ECC71;">
+                            👋 PRENDRE EN CHARGE
+                        </button>
+                    ` : isAssignedToMe ? `
+                        <button class="alert-action-btn unassign-btn" data-action="unassign" data-alert-id="${alert.id}" style="border-color: #E67E22; color: #E67E22;">
+                            🔓 LIBÉRER
+                        </button>
+                    ` : ''}
                     <button class="alert-action-btn delete-btn" data-action="delete" data-alert-id="${alert.id}">
                         🗑 SUPPRIMER
                     </button>
@@ -1262,12 +1361,30 @@
             // Ajouter les event listeners après avoir créé le HTML
             const readBtn = div.querySelector('[data-action="read"]');
             const deleteBtn = div.querySelector('[data-action="delete"]');
+            const assignBtn = div.querySelector('[data-action="assign"]');
+            const unassignBtn = div.querySelector('[data-action="unassign"]');
 
             if (readBtn) {
                 readBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     toggleReadStatus(alert.id);
+                });
+            }
+
+            if (assignBtn) {
+                assignBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    assignAlert(alert.id);
+                });
+            }
+
+            if (unassignBtn) {
+                unassignBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    unassignAlert(alert.id);
                 });
             }
 
@@ -1356,6 +1473,106 @@
             } catch (error) {
                 console.error('Delete error:', error);
                 showStatus('ERREUR DE SUPPRESSION', false);
+            }
+        }
+
+        // Prendre en charge une alerte
+        async function assignAlert(alertId) {
+            const id = parseInt(alertId);
+            const token = localStorage.getItem('jwt_token');
+
+            if (!token) {
+                showStatus('⛔ ERREUR: Non authentifié', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/alerts/${id}/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const updatedAlert = await response.json();
+                    console.log('✅ Alerte assignée:', updatedAlert);
+                    
+                    // Mettre à jour l'alerte dans le cache
+                    const index = alertData.findIndex(a => a.id === id);
+                    if (index !== -1) {
+                        alertData[index] = updatedAlert;
+                    }
+                    
+                    // Re-render l'alerte
+                    const alertElement = document.querySelector(`[data-alert-id="${id}"]`);
+                    if (alertElement) {
+                        const newElement = createAlertElement(updatedAlert);
+                        newElement.dataset.alertId = id;
+                        alertElement.replaceWith(newElement);
+                    }
+                    
+                    showStatus('✅ ALERTE PRISE EN CHARGE', true);
+                } else {
+                    const error = await response.json();
+                    showStatus(`❌ ${error.error || 'Erreur de prise en charge'}`, false);
+                }
+            } catch (error) {
+                console.error('Erreur prise en charge:', error);
+                showStatus('❌ ERREUR DE PRISE EN CHARGE', false);
+            }
+        }
+
+        // Libérer une alerte
+        async function unassignAlert(alertId) {
+            const id = parseInt(alertId);
+            const token = localStorage.getItem('jwt_token');
+
+            if (!token) {
+                showStatus('⛔ ERREUR: Non authentifié', false);
+                return;
+            }
+
+            if (!confirm('Voulez-vous libérer cette alerte ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/alerts/${id}/unassign`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const updatedAlert = await response.json();
+                    console.log('✅ Alerte libérée:', updatedAlert);
+                    
+                    // Mettre à jour l'alerte dans le cache
+                    const index = alertData.findIndex(a => a.id === id);
+                    if (index !== -1) {
+                        alertData[index] = updatedAlert;
+                    }
+                    
+                    // Re-render l'alerte
+                    const alertElement = document.querySelector(`[data-alert-id="${id}"]`);
+                    if (alertElement) {
+                        const newElement = createAlertElement(updatedAlert);
+                        newElement.dataset.alertId = id;
+                        alertElement.replaceWith(newElement);
+                    }
+                    
+                    showStatus('🔓 ALERTE LIBÉRÉE', true);
+                } else {
+                    const error = await response.json();
+                    showStatus(`❌ ${error.error || 'Erreur de libération'}`, false);
+                }
+            } catch (error) {
+                console.error('Erreur libération:', error);
+                showStatus('❌ ERREUR DE LIBÉRATION', false);
             }
         }
 
@@ -1769,6 +1986,130 @@
         }
 
         // Fonction pour afficher System Control
+        // Rendu de la gestion des utilisateurs (Admin uniquement)
+        async function renderUsersManagement() {
+            const contentArea = document.getElementById('content-area');
+            const token = localStorage.getItem('jwt_token');
+
+            if (!token) {
+                contentArea.innerHTML = '<div class="alert-hologram"><div class="alert-message" style="color: var(--tier-t1);">⛔ Non authentifié</div></div>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Accès refusé');
+                }
+
+                const users = await response.json();
+
+                let usersHTML = '<div style="display: grid; gap: 1rem;">';
+                
+                users.forEach(user => {
+                    const roles = user.roles ? user.roles.split(',') : ['medic'];
+                    const roleDisplay = roles.includes('admin') ? '👑 ADMIN' : '⚕️ MEDIC';
+                    const lastLogin = new Date(user.lastLogin).toLocaleString('fr-FR');
+
+                    usersHTML += `
+                        <div class="alert-hologram" style="padding: 1.5rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div style="font-size: 2rem;">${roles.includes('admin') ? '👑' : '⚕️'}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1.2rem; color: var(--holo-cyan); font-weight: 700; font-family: 'Orbitron', monospace;">
+                                        ${user.username}${user.discriminator ? `#${user.discriminator}` : ''}
+                                    </div>
+                                    <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                                        Discord ID: ${user.discordId}
+                                    </div>
+                                    <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+                                        Dernière connexion: ${lastLogin}
+                                    </div>
+                                </div>
+                                <div style="padding: 0.5rem 1rem; border-radius: 8px; background: ${roles.includes('admin') ? 'rgba(241, 196, 15, 0.15)' : 'rgba(46, 204, 113, 0.15)'}; color: ${roles.includes('admin') ? '#F1C40F' : '#2ECC71'}; border: 1px solid ${roles.includes('admin') ? '#F1C40F' : '#2ECC71'}; font-weight: 700;">
+                                    ${roleDisplay}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                usersHTML += '</div>';
+                contentArea.innerHTML = usersHTML;
+
+            } catch (error) {
+                console.error('Erreur chargement utilisateurs:', error);
+                contentArea.innerHTML = '<div class="alert-hologram"><div class="alert-message" style="color: var(--tier-t1);">❌ Erreur de chargement des utilisateurs</div></div>';
+            }
+        }
+
+        // Rendu de mes alertes prises en charge
+        async function renderMyAssignments() {
+            const contentArea = document.getElementById('content-area');
+            const token = localStorage.getItem('jwt_token');
+
+            if (!token) {
+                contentArea.innerHTML = '<div class="alert-hologram"><div class="alert-message" style="color: var(--tier-t1);">⛔ Non authentifié</div></div>';
+                return;
+            }
+
+            try {
+                const isAdmin = (window.userRoles || []).includes('admin');
+                const endpoint = isAdmin ? '/api/alerts/all-assignments' : '/api/alerts/my-assignments';
+                
+                const response = await fetch(endpoint, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur de chargement');
+                }
+
+                const assignments = await response.json();
+
+                if (assignments.length === 0) {
+                    contentArea.innerHTML = `
+                        <div class="alert-hologram">
+                            <div class="alert-message" style="text-align: center;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+                                <div style="font-size: 1.2rem; color: var(--holo-cyan);">Aucune alerte prise en charge</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                                    ${isAdmin ? 'Aucun membre de l\'équipe n\'a pris en charge d\'alertes pour le moment.' : 'Vous n\'avez pas encore pris d\'alertes en charge.'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                contentArea.innerHTML = `
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: rgba(0, 255, 255, 0.05); border-left: 3px solid var(--holo-cyan); border-radius: 8px;">
+                        <div style="font-size: 1.1rem; color: var(--holo-cyan); font-weight: 600;">
+                            ${isAdmin ? '👥 Toutes les assignations' : '📋 Mes alertes'}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            ${assignments.length} alerte${assignments.length > 1 ? 's' : ''} prise${assignments.length > 1 ? 's' : ''} en charge
+                        </div>
+                    </div>
+                    <div class="alert-grid" id="alert-container"></div>
+                `;
+
+                const container = document.getElementById('alert-container');
+                assignments.forEach(alert => {
+                    const alertElement = createAlertElement(alert);
+                    alertElement.dataset.alertId = alert.id;
+                    container.appendChild(alertElement);
+                });
+
+            } catch (error) {
+                console.error('Erreur chargement assignations:', error);
+                contentArea.innerHTML = '<div class="alert-hologram"><div class="alert-message" style="color: var(--tier-t1);">❌ Erreur de chargement</div></div>';
+            }
+        }
+
         function renderSystemControl() {
             const contentArea = document.getElementById('content-area');
 

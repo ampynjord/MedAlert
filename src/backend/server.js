@@ -9,7 +9,7 @@ const sqlite3 = require('sqlite3').verbose();
 const webpush = require('web-push');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
-const { passport, generateToken, verifyToken, optionalAuth } = require('./auth');
+const { passport, generateToken, verifyToken, optionalAuth, requireRole } = require('./auth');
 
 // Utiliser les variables d'environnement pour VAPID
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@medalert.local';
@@ -133,6 +133,10 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     motif TEXT,
     equipe TEXT,
     tier TEXT,
+    assignedTo TEXT,
+    assignedToUsername TEXT,
+    assignedAt DATETIME,
+    status TEXT DEFAULT 'pending',
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`, (err) => {
     if (err) {
@@ -140,6 +144,12 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
       process.exit(1);
     }
     console.log('✅ Table alerts prête');
+    
+    // Migration : Ajouter les colonnes si elles n'existent pas
+    db.run(`ALTER TABLE alerts ADD COLUMN assignedTo TEXT`, () => {});
+    db.run(`ALTER TABLE alerts ADD COLUMN assignedToUsername TEXT`, () => {});
+    db.run(`ALTER TABLE alerts ADD COLUMN assignedAt DATETIME`, () => {});
+    db.run(`ALTER TABLE alerts ADD COLUMN status TEXT DEFAULT 'pending'`, () => {});
   });
 
   // Création de la table users pour l'authentification
@@ -150,6 +160,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     discriminator TEXT,
     avatar TEXT,
     email TEXT,
+    roles TEXT DEFAULT 'medic',
     lastLogin DATETIME DEFAULT CURRENT_TIMESTAMP,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )`, (err) => {
@@ -158,6 +169,13 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
       process.exit(1);
     }
     console.log('✅ Table users prête');
+    
+    // Ajout de la colonne roles si elle n'existe pas (migration)
+    db.run(`ALTER TABLE users ADD COLUMN roles TEXT DEFAULT 'medic'`, (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.error('⚠️  Avertissement migration roles:', err.message);
+      }
+    });
   });
 
   console.log('✅ Base SQLite prête:', DB_PATH);
@@ -181,27 +199,73 @@ app.get('/api/config', (req, res) => {
 // ROUTES D'AUTHENTIFICATION
 // ========================================
 
+// Fonction pour déterminer les rôles d'un utilisateur
+function getUserRoles(username) {
+  const username_lower = username.toLowerCase();
+  
+  // Admin principal avec tous les droits
+  if (username_lower === 'ampynjord') {
+    return 'admin,medic'; // Admin + Medic
+  }
+  
+  // Par défaut, tout le monde est Medic
+  return 'medic';
+}
+
 // Redirection vers Discord OAuth2
 app.get('/auth/discord', passport.authenticate('discord'));
 
 // Callback après authentification Discord
 app.get('/auth/discord/callback',
-  passport.authenticate('discord', { failureRedirect: '/auth/error' }),
+  (req, res, next) => {
+    passport.authenticate('discord', (err, user, info) => {
+      if (err) {
+        return next(err);
+      }
+      
+      // Si l'utilisateur n'est pas dans le serveur Discord requis
+      if (!user && info && info.message === 'not_in_guild') {
+        return res.redirect(`${process.env.FRONTEND_URL}/login.html?error=not_in_guild`);
+      }
+      
+      if (!user) {
+        return res.redirect('/auth/error');
+      }
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        next();
+      });
+    })(req, res, next);
+  },
   (req, res) => {
     // Sauvegarder ou mettre à jour l'utilisateur dans la DB
     const user = req.user;
+    const roles = getUserRoles(user.username);
 
-    db.run(`INSERT OR REPLACE INTO users (discordId, username, discriminator, avatar, email, lastLogin)
-            VALUES (?, ?, ?, ?, ?, datetime('now'))`,
-      [user.discordId, user.username, user.discriminator, user.avatar, user.email],
+    db.run(`INSERT INTO users (discordId, username, discriminator, avatar, email, roles, lastLogin)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(discordId) DO UPDATE SET
+              username = excluded.username,
+              discriminator = excluded.discriminator,
+              avatar = excluded.avatar,
+              email = excluded.email,
+              roles = excluded.roles,
+              lastLogin = datetime('now')`,
+      [user.discordId, user.username, user.discriminator, user.avatar, user.email, roles],
       (err) => {
         if (err) {
           console.error('❌ Erreur sauvegarde utilisateur:', err);
         } else {
-          console.log(`✅ Utilisateur ${user.username} connecté`);
+          console.log(`✅ Utilisateur ${user.username} connecté avec rôles: ${roles}`);
         }
       }
     );
+
+    // Ajouter les rôles à l'objet user pour le JWT
+    user.roles = roles.split(',');
 
     // Générer un JWT
     const token = generateToken(user);
@@ -226,7 +290,10 @@ app.get('/auth/error', (req, res) => {
 
 // Route pour vérifier si l'utilisateur est authentifié
 app.get('/auth/me', verifyToken, (req, res) => {
-  res.json({ user: req.user });
+  res.json({ 
+    user: req.user,
+    roles: req.user.roles || ['medic']
+  });
 });
 
 // Route de déconnexion
@@ -236,6 +303,47 @@ app.post('/auth/logout', (req, res) => {
       return res.status(500).json({ error: 'Erreur lors de la déconnexion' });
     }
     res.json({ message: 'Déconnexion réussie' });
+  });
+});
+
+// ========================================
+// ROUTES GESTION UTILISATEURS (Admin uniquement)
+// ========================================
+
+// Liste de tous les utilisateurs (Admin uniquement)
+app.get('/api/users', verifyToken, requireRole('admin'), (req, res) => {
+  db.all('SELECT id, discordId, username, discriminator, avatar, email, roles, lastLogin, createdAt FROM users ORDER BY lastLogin DESC', (err, rows) => {
+    if (err) {
+      console.error('❌ Erreur récupération utilisateurs:', err);
+      return res.status(500).json({ error: 'Erreur base de données' });
+    }
+    res.json(rows);
+  });
+});
+
+// Mettre à jour les rôles d'un utilisateur (Admin uniquement)
+app.put('/api/users/:discordId/roles', verifyToken, requireRole('admin'), (req, res) => {
+  const { discordId } = req.params;
+  const { roles } = req.body;
+
+  if (!roles || !Array.isArray(roles)) {
+    return res.status(400).json({ error: 'Rôles invalides' });
+  }
+
+  const rolesString = roles.join(',');
+
+  db.run('UPDATE users SET roles = ? WHERE discordId = ?', [rolesString, discordId], function(err) {
+    if (err) {
+      console.error('❌ Erreur mise à jour rôles:', err);
+      return res.status(500).json({ error: 'Erreur base de données' });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    console.log(`✅ Rôles mis à jour pour ${discordId}: ${rolesString}`);
+    res.json({ message: 'Rôles mis à jour avec succès', roles: roles });
   });
 });
 
@@ -274,6 +382,101 @@ app.delete('/api/alerts/:id', (req, res) => {
 
     console.log(`✅ Alerte ${alertId} supprimée (changes: ${this.changes})`);
     res.json({ message: 'Alerte supprimée avec succès', id: alertId });
+  });
+});
+
+// Prendre en charge une alerte
+app.post('/api/alerts/:id/assign', verifyToken, (req, res) => {
+  const alertId = req.params.id;
+  const user = req.user;
+
+  console.log(`👤 Prise en charge alerte ${alertId} par ${user.username}`);
+
+  db.run(
+    'UPDATE alerts SET assignedTo = ?, assignedToUsername = ?, assignedAt = datetime("now"), status = ? WHERE id = ?',
+    [user.discordId, user.username, 'assigned', alertId],
+    function(err) {
+      if (err) {
+        console.error('❌ Erreur prise en charge alerte:', err);
+        return res.status(500).json({ error: 'Erreur base de données' });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Alerte non trouvée' });
+      }
+
+      console.log(`✅ Alerte ${alertId} assignée à ${user.username}`);
+      
+      // Récupérer l'alerte mise à jour
+      db.get('SELECT * FROM alerts WHERE id = ?', [alertId], (err, alert) => {
+        if (err) return res.status(500).json({ error: 'Erreur base de données' });
+        res.json(alert);
+      });
+    }
+  );
+});
+
+// Libérer une alerte
+app.post('/api/alerts/:id/unassign', verifyToken, (req, res) => {
+  const alertId = req.params.id;
+  const user = req.user;
+
+  console.log(`🔓 Libération alerte ${alertId} par ${user.username}`);
+
+  // Vérifier que c'est bien l'utilisateur assigné ou un admin
+  db.get('SELECT * FROM alerts WHERE id = ?', [alertId], (err, alert) => {
+    if (err || !alert) {
+      return res.status(404).json({ error: 'Alerte non trouvée' });
+    }
+
+    const isAdmin = (user.roles || []).includes('admin');
+    const isAssignedToUser = alert.assignedTo === user.discordId;
+
+    if (!isAdmin && !isAssignedToUser) {
+      return res.status(403).json({ error: 'Vous ne pouvez libérer que vos propres alertes' });
+    }
+
+    db.run(
+      'UPDATE alerts SET assignedTo = NULL, assignedToUsername = NULL, assignedAt = NULL, status = ? WHERE id = ?',
+      ['pending', alertId],
+      function(err) {
+        if (err) {
+          console.error('❌ Erreur libération alerte:', err);
+          return res.status(500).json({ error: 'Erreur base de données' });
+        }
+
+        console.log(`✅ Alerte ${alertId} libérée`);
+        
+        db.get('SELECT * FROM alerts WHERE id = ?', [alertId], (err, alert) => {
+          if (err) return res.status(500).json({ error: 'Erreur base de données' });
+          res.json(alert);
+        });
+      }
+    );
+  });
+});
+
+// Récupérer les alertes assignées à l'utilisateur connecté
+app.get('/api/alerts/my-assignments', verifyToken, (req, res) => {
+  const user = req.user;
+  
+  db.all('SELECT * FROM alerts WHERE assignedTo = ? ORDER BY assignedAt DESC', [user.discordId], (err, rows) => {
+    if (err) {
+      console.error('❌ Erreur récupération alertes assignées:', err);
+      return res.status(500).json({ error: 'Erreur base de données' });
+    }
+    res.json(rows);
+  });
+});
+
+// Récupérer toutes les assignations (Admin uniquement)
+app.get('/api/alerts/all-assignments', verifyToken, requireRole('admin'), (req, res) => {
+  db.all('SELECT * FROM alerts WHERE assignedTo IS NOT NULL ORDER BY assignedAt DESC', (err, rows) => {
+    if (err) {
+      console.error('❌ Erreur récupération toutes les assignations:', err);
+      return res.status(500).json({ error: 'Erreur base de données' });
+    }
+    res.json(rows);
   });
 });
 

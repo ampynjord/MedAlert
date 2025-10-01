@@ -123,6 +123,29 @@ Copiez les clés générées dans votre `.env`.
 - 📱 PWA (Progressive Web App) - installable sur mobile et desktop
 - 🔄 Auto-refresh toutes les 10 secondes
 
+### 👥 Système de rôles
+
+MedAlert utilise un système de permissions basé sur les rôles :
+
+| Rôle | Badge | Accès aux modules | Description |
+|------|-------|-------------------|-------------|
+| **Admin** | 👑 | Alerts, Medical, Analytics, Systems | Accès complet à tous les modules |
+| **Medic** | ⚕️ | Alerts, Medical | Accès limité aux alertes et systèmes médicaux |
+
+**Configuration des rôles :**
+- Les rôles sont attribués automatiquement lors de la connexion Discord
+- Par défaut, tous les utilisateurs ont le rôle **Medic**
+- L'utilisateur `ampynjord` a automatiquement les rôles **Admin + Medic**
+- Pour ajouter d'autres admins, modifiez la fonction `getUserRoles()` dans `src/backend/server.js`
+
+**Permissions par module :**
+```
+✅ Alerts    → Medic + Admin
+✅ Medical   → Medic + Admin
+🔒 Analytics → Admin uniquement
+🔒 Systems   → Admin uniquement
+```
+
 ### 🔔 Configuration des notifications push
 
 **Windows :**
