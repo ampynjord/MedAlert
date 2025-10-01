@@ -199,17 +199,26 @@ app.get('/api/config', (req, res) => {
 // ROUTES D'AUTHENTIFICATION
 // ========================================
 
-// Fonction pour déterminer les rôles d'un utilisateur
-function getUserRoles(username) {
-  const username_lower = username.toLowerCase();
-  
-  // Admin principal avec tous les droits
-  if (username_lower === 'ampynjord') {
-    return 'admin,medic'; // Admin + Medic
-  }
-  
-  // Par défaut, tout le monde est Medic
-  return 'medic';
+// Fonction pour déterminer les rôles d'un utilisateur depuis la BDD
+function getUserRoles(username, callback) {
+  db.get('SELECT roles FROM users WHERE username = ?', [username], (err, row) => {
+    if (err) {
+      console.error('❌ Erreur lecture rôles:', err);
+      return callback('medic'); // Fallback en cas d'erreur
+    }
+    
+    if (row && row.roles) {
+      return callback(row.roles);
+    }
+    
+    // Si pas trouvé en BDD, utiliser le fallback par défaut
+    const username_lower = username.toLowerCase();
+    if (username_lower === 'ampynjord') {
+      return callback('admin,medic');
+    }
+    
+    return callback('medic');
+  });
 }
 
 // Redirection vers Discord OAuth2
@@ -243,38 +252,39 @@ app.get('/auth/discord/callback',
   (req, res) => {
     // Sauvegarder ou mettre à jour l'utilisateur dans la DB
     const user = req.user;
-    const roles = getUserRoles(user.username);
-
-    db.run(`INSERT INTO users (discordId, username, discriminator, avatar, email, roles, lastLogin)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            ON CONFLICT(discordId) DO UPDATE SET
-              username = excluded.username,
-              discriminator = excluded.discriminator,
-              avatar = excluded.avatar,
-              email = excluded.email,
-              roles = excluded.roles,
-              lastLogin = datetime('now')`,
-      [user.discordId, user.username, user.discriminator, user.avatar, user.email, roles],
-      (err) => {
-        if (err) {
-          console.error('❌ Erreur sauvegarde utilisateur:', err);
-        } else {
-          console.log(`✅ Utilisateur ${user.username} connecté avec rôles: ${roles}`);
+    
+    // Récupérer les rôles de manière asynchrone depuis la BDD
+    getUserRoles(user.username, (roles) => {
+      db.run(`INSERT INTO users (discordId, username, discriminator, avatar, email, roles, lastLogin)
+              VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+              ON CONFLICT(discordId) DO UPDATE SET
+                username = excluded.username,
+                discriminator = excluded.discriminator,
+                avatar = excluded.avatar,
+                email = excluded.email,
+                lastLogin = datetime('now')`,
+        [user.discordId, user.username, user.discriminator, user.avatar, user.email, roles],
+        (err) => {
+          if (err) {
+            console.error('❌ Erreur sauvegarde utilisateur:', err);
+          } else {
+            console.log(`✅ Utilisateur ${user.username} connecté avec rôles: ${roles}`);
+          }
         }
-      }
-    );
+      );
 
-    // Ajouter les rôles à l'objet user pour le JWT
-    user.roles = roles.split(',');
+      // Ajouter les rôles à l'objet user pour le JWT
+      user.roles = roles.split(',');
 
-    // Générer un JWT
-    const token = generateToken(user);
+      // Générer un JWT
+      const token = generateToken(user);
 
-    // Rediriger vers le frontend avec le token (depuis .env)
-    const frontendUrl = `${process.env.FRONTEND_URL}/?token=${token}`;
-    console.log(`🔄 Redirection vers: ${frontendUrl}`);
+      // Rediriger vers le frontend avec le token (depuis .env)
+      const frontendUrl = `${process.env.FRONTEND_URL}/?token=${token}`;
+      console.log(`🔄 Redirection vers: ${frontendUrl}`);
 
-    res.redirect(frontendUrl);
+      res.redirect(frontendUrl);
+    });
   }
 );
 
