@@ -741,6 +741,100 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Filters Section */
+        .filters-container {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-panel);
+            border: var(--border-holo);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .filter-select {
+            background: rgba(0, 20, 40, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-family: 'Rajdhani', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .filter-select:hover {
+            border-color: var(--holo-cyan);
+            box-shadow: var(--glow-soft);
+            background: rgba(0, 40, 80, 0.6);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--holo-cyan);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+
+        .filter-select option {
+            background: rgba(0, 20, 40, 0.95);
+            color: var(--text-primary);
+            padding: 0.5rem;
+        }
+
+        .filter-reset-btn {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #E74C3C;
+            color: #E74C3C;
+            padding: 0.5rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Rajdhani', monospace;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: auto;
+        }
+
+        .filter-reset-btn:hover {
+            background: rgba(231, 76, 60, 0.3);
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .filters-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-select {
+                width: 100%;
+            }
+
+            .filter-reset-btn {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -800,6 +894,49 @@
                     ⟳ REFRESH
                 </button>
             </div>
+
+            <!-- Filters Section -->
+            <div class="filters-container" id="filters-section" style="display: none;">
+                <div class="filter-group">
+                    <label class="filter-label">📅 Trier par</label>
+                    <select class="filter-select" id="sort-by" onchange="applyFilters()">
+                        <option value="date">Date d'ajout</option>
+                        <option value="priority">Priorité (T1→T3)</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">🔽 Ordre</label>
+                    <select class="filter-select" id="sort-order" onchange="applyFilters()">
+                        <option value="desc">Décroissant (↓)</option>
+                        <option value="asc">Croissant (↑)</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">🎯 Priorité</label>
+                    <select class="filter-select" id="filter-priority" onchange="applyFilters()">
+                        <option value="all">Toutes</option>
+                        <option value="T1">T1 - Haute</option>
+                        <option value="T2">T2 - Moyenne</option>
+                        <option value="T3">T3 - Basse</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">📊 Statut</label>
+                    <select class="filter-select" id="filter-status" onchange="applyFilters()">
+                        <option value="all">Tous</option>
+                        <option value="available">Disponibles</option>
+                        <option value="assigned">Assignées</option>
+                    </select>
+                </div>
+
+                <button class="filter-reset-btn" onclick="resetFilters()">
+                    🔄 RÉINITIALISER
+                </button>
+            </div>
+
             <div id="content-area">
                 <div class="alert-grid" id="alert-container">
                     <!-- Alerts will be populated here -->
@@ -1084,11 +1221,23 @@
 
             const titleElement = document.getElementById('panel-title');
             const contentArea = document.getElementById('content-area');
+            const filtersSection = document.getElementById('filters-section');
+
+            // Masquer les filtres par défaut
+            if (filtersSection) {
+                filtersSection.style.display = 'none';
+            }
 
             switch(panel) {
                 case 'alerts':
                     titleElement.textContent = 'MEDICAL ALERTS';
                     contentArea.innerHTML = '<div class="alert-grid" id="alert-container"></div>';
+                    
+                    // Afficher les filtres uniquement sur le panneau ALERTS
+                    if (filtersSection) {
+                        filtersSection.style.display = 'flex';
+                    }
+                    
                     // Réafficher les alertes depuis le cache
                     if (alertData.length > 0) {
                         renderAlertsFromCache();
@@ -1181,8 +1330,8 @@
                 alertData = data;
                 updateSystemStats();
 
-                // Mise à jour en temps réel sans régénérer toutes les cartes
-                updateAlertsRealtime(data);
+                // Appliquer les filtres si actifs
+                applyFilters();
 
                 // Check for new alerts
                 if (data.length > 0) {
@@ -1212,6 +1361,81 @@
                     updateConnectionStatus('danger');
                 }
             }
+        }
+
+        // ========================================
+        // SYSTÈME DE FILTRAGE DES ALERTES
+        // ========================================
+        
+        // Fonction pour appliquer tous les filtres
+        function applyFilters() {
+            if (!alertData || alertData.length === 0) return;
+
+            let filteredAlerts = [...alertData];
+
+            // Filtre par priorité
+            const priorityFilter = document.getElementById('filter-priority')?.value;
+            if (priorityFilter && priorityFilter !== 'all') {
+                filteredAlerts = filteredAlerts.filter(alert => {
+                    const tier = alert.tier || alert.injuryType || determineTierFromMessage(alert.message || '');
+                    return tier === priorityFilter;
+                });
+            }
+
+            // Filtre par statut (assignée ou disponible)
+            const statusFilter = document.getElementById('filter-status')?.value;
+            if (statusFilter && statusFilter !== 'all') {
+                filteredAlerts = filteredAlerts.filter(alert => {
+                    const isAssigned = alert.assignedTo !== null && alert.assignedTo !== undefined;
+                    return (statusFilter === 'assigned' && isAssigned) || (statusFilter === 'available' && !isAssigned);
+                });
+            }
+
+            // Tri
+            const sortBy = document.getElementById('sort-by')?.value || 'date';
+            const sortOrder = document.getElementById('sort-order')?.value || 'desc';
+
+            if (sortBy === 'date') {
+                // Tri par date (createdAt)
+                filteredAlerts.sort((a, b) => {
+                    const dateA = new Date(a.createdAt).getTime();
+                    const dateB = new Date(b.createdAt).getTime();
+                    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+                });
+            } else if (sortBy === 'priority') {
+                // Tri par priorité (T1 = haute, T2 = moyenne, T3 = basse)
+                const priorityOrder = { 'T1': 1, 'T2': 2, 'T3': 3 };
+                filteredAlerts.sort((a, b) => {
+                    const tierA = a.tier || a.injuryType || determineTierFromMessage(a.message || '');
+                    const tierB = b.tier || b.injuryType || determineTierFromMessage(b.message || '');
+                    const priorityA = priorityOrder[tierA] || 999;
+                    const priorityB = priorityOrder[tierB] || 999;
+                    
+                    if (sortOrder === 'desc') {
+                        // Décroissant = T1 puis T2 puis T3
+                        return priorityA - priorityB;
+                    } else {
+                        // Croissant = T3 puis T2 puis T1
+                        return priorityB - priorityA;
+                    }
+                });
+            }
+
+            // Afficher les résultats filtrés
+            updateAlertsRealtime(filteredAlerts);
+            
+            console.log(`🔍 Filtres appliqués: ${filteredAlerts.length} alertes sur ${alertData.length}`);
+        }
+
+        // Fonction pour réinitialiser tous les filtres
+        function resetFilters() {
+            document.getElementById('sort-by').value = 'date';
+            document.getElementById('sort-order').value = 'desc';
+            document.getElementById('filter-priority').value = 'all';
+            document.getElementById('filter-status').value = 'all';
+            
+            applyFilters();
+            showStatus('FILTRES RÉINITIALISÉS', true);
         }
 
         // Mise à jour temps réel sans régénération complète
