@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MedAlert</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --holo-cyan: #00ffff;
+            --bg-space: #000408;
+            --bg-panel: rgba(0, 20, 40, 0.4);
+            --text-primary: #ffffff;
+            --text-secondary: #b3e5fc;
+            --glow-soft: 0 0 10px rgba(0, 255, 255, 0.3);
+            --border-holo: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', monospace;
+            background: var(--bg-space);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Holographic Grid Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.02) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(0, 128, 255, 0.02) 0%, transparent 50%),
+                linear-gradient(0deg, transparent 24%, rgba(0, 255, 255, 0.03) 25%, rgba(0, 255, 255, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.03) 75%, rgba(0, 255, 255, 0.03) 76%, transparent 77%),
+                linear-gradient(90deg, transparent 24%, rgba(0, 255, 255, 0.03) 25%, rgba(0, 255, 255, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.03) 75%, rgba(0, 255, 255, 0.03) 76%, transparent 77%);
+            background-size: 100px 100px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Holographic Wave Animation */
+        @keyframes holoWave {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(200%) translateY(200%) rotate(45deg);
+            }
+        }
+
+        .login-container {
+            background: var(--bg-panel);
+            border: var(--border-holo);
+            border-radius: 20px;
+            padding: 3rem;
+            max-width: 450px;
+            width: 90%;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                transparent 40%,
+                rgba(0, 255, 255, 0.08) 45%,
+                rgba(0, 255, 255, 0.15) 50%,
+                rgba(0, 255, 255, 0.08) 55%,
+                transparent 60%,
+                transparent 100%
+            );
+            animation: holoWave 8s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .login-container > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--holo-cyan);
+            text-shadow: var(--glow-soft);
+            text-align: center;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+
+        .discord-button {
+            width: 100%;
+            background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+            border: var(--border-holo);
+            border-radius: 12px;
+            color: var(--text-primary);
+            padding: 1.2rem;
+            font-family: 'Rajdhani', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            box-shadow: 0 4px 20px rgba(88, 101, 242, 0.3);
+            text-decoration: none;
+        }
+
+        .discord-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(88, 101, 242, 0.5);
+            border-color: var(--holo-cyan);
+        }
+
+        .discord-icon {
+            width: 28px;
+            height: 28px;
+        }
+
+        .info-text {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 2rem;
+            opacity: 0.7;
+        }
+
+        .features {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: var(--border-holo);
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .feature-icon {
+            color: var(--holo-cyan);
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">MEDALERT</div>
+        <div class="subtitle">Medical Command Interface</div>
+
+        <a href="#" id="discord-login-btn" class="discord-button">
+            <svg class="discord-icon" viewBox="0 0 71 55" fill="none">
+                <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978Z" fill="currentColor"/>
+            </svg>
+            Se connecter avec Discord
+        </a>
+
+        <div class="info-text">
+            Authentification sécurisée via Discord OAuth2
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <span class="feature-icon">🔒</span>
+                <span>Connexion sécurisée avec OAuth2</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">⚡</span>
+                <span>Accès instantané à l'interface</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🔔</span>
+                <span>Notifications push en temps réel</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Charger la configuration depuis le backend
+        let config = null;
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                config = await response.json();
+
+                // Configurer le bouton Discord
+                const discordBtn = document.getElementById('discord-login-btn');
+                if (discordBtn && config.backendAuthUrl) {
+                    discordBtn.href = `${config.backendAuthUrl}/auth/discord`;
+                }
+
+                // Vérifier si on a déjà un token valide
+                checkExistingToken();
+            } catch (error) {
+                console.error('Erreur chargement config:', error);
+                // Fallback en cas d'erreur
+                const discordBtn = document.getElementById('discord-login-btn');
+                if (discordBtn) {
+                    discordBtn.href = '/auth/discord';
+                }
+            }
+        }
+
+        function checkExistingToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token') || localStorage.getItem('jwt_token');
+
+            if (token && config) {
+                // Vérifier si le token est valide
+                fetch(`${config.backendAuthUrl}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(res => {
+                    if (res.ok) {
+                        // Token valide, rediriger vers l'app
+                        if (urlParams.get('token')) {
+                            localStorage.setItem('jwt_token', urlParams.get('token'));
+                        }
+                        window.location.href = '/';
+                    }
+                })
+                .catch(() => {
+                    // Token invalide, rester sur la page de login
+                });
+            }
+        }
+
+        // Charger la config au démarrage
+        loadConfig();
+    </script>
+</body>
+</html>

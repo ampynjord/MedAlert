@@ -7,6 +7,9 @@ const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const webpush = require('web-push');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const { passport, generateToken, verifyToken, optionalAuth } = require('./auth');
 
 // Utiliser les variables d'environnement pour VAPID
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@medalert.local';
@@ -95,8 +98,23 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'my-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true, // HTTPS uniquement
+    maxAge: 24 * 60 * 60 * 1000 // 24 heures
+  }
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Initialisation de la base SQLite
 const db = new sqlite3.Database(DB_PATH, (err) => {
@@ -123,6 +141,25 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     }
     console.log('✅ Table alerts prête');
   });
+
+  // Création de la table users pour l'authentification
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    discordId TEXT UNIQUE NOT NULL,
+    username TEXT NOT NULL,
+    discriminator TEXT,
+    avatar TEXT,
+    email TEXT,
+    lastLogin DATETIME DEFAULT CURRENT_TIMESTAMP,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`, (err) => {
+    if (err) {
+      console.error('❌ Erreur création table users:', err);
+      process.exit(1);
+    }
+    console.log('✅ Table users prête');
+  });
+
   console.log('✅ Base SQLite prête:', DB_PATH);
 });
 
@@ -131,8 +168,77 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', db: DB_PATH });
 });
 
+// Endpoint pour récupérer la configuration publique (URLs, etc.)
+app.get('/api/config', (req, res) => {
+  res.json({
+    backendAuthUrl: process.env.BACKEND_AUTH_URL || 'https://localhost:3443',
+    frontendUrl: process.env.FRONTEND_URL || 'https://localhost:8443',
+    vapidPublicKey: VAPID_PUBLIC_KEY
+  });
+});
 
-// Récupérer les alertes
+// ========================================
+// ROUTES D'AUTHENTIFICATION
+// ========================================
+
+// Redirection vers Discord OAuth2
+app.get('/auth/discord', passport.authenticate('discord'));
+
+// Callback après authentification Discord
+app.get('/auth/discord/callback',
+  passport.authenticate('discord', { failureRedirect: '/auth/error' }),
+  (req, res) => {
+    // Sauvegarder ou mettre à jour l'utilisateur dans la DB
+    const user = req.user;
+
+    db.run(`INSERT OR REPLACE INTO users (discordId, username, discriminator, avatar, email, lastLogin)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+      [user.discordId, user.username, user.discriminator, user.avatar, user.email],
+      (err) => {
+        if (err) {
+          console.error('❌ Erreur sauvegarde utilisateur:', err);
+        } else {
+          console.log(`✅ Utilisateur ${user.username} connecté`);
+        }
+      }
+    );
+
+    // Générer un JWT
+    const token = generateToken(user);
+
+    // Rediriger vers le frontend avec le token (depuis .env)
+    const frontendUrl = `${process.env.FRONTEND_URL}/?token=${token}`;
+    console.log(`🔄 Redirection vers: ${frontendUrl}`);
+
+    res.redirect(frontendUrl);
+  }
+);
+
+// Route d'erreur d'authentification
+app.get('/auth/error', (req, res) => {
+  res.status(401).json({ error: 'Échec de l\'authentification' });
+});
+
+// Route pour vérifier si l'utilisateur est authentifié
+app.get('/auth/me', verifyToken, (req, res) => {
+  res.json({ user: req.user });
+});
+
+// Route de déconnexion
+app.post('/auth/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Erreur lors de la déconnexion' });
+    }
+    res.json({ message: 'Déconnexion réussie' });
+  });
+});
+
+// ========================================
+// ROUTES ALERTES (protégées)
+// ========================================
+
+// Récupérer les alertes (accessible sans auth, mais on peut ajouter verifyToken si besoin)
 app.get('/api/alerts', (req, res) => {
   db.all('SELECT * FROM alerts ORDER BY createdAt DESC LIMIT 50', (err, rows) => {
     if (err) return res.status(500).json({ error: 'Erreur base de données' });

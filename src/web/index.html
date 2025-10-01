@@ -761,6 +761,12 @@
                     <div class="status-dot online"></div>
                     <span>ALERTS ACTIVE</span>
                 </div>
+                <div class="status-indicator" style="margin-left: auto;">
+                    <span id="user-info" style="color: var(--holo-cyan); font-weight: 600;"></span>
+                    <button onclick="logout()" style="background: rgba(231, 76, 60, 0.2); border: 1px solid #E74C3C; color: #E74C3C; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-family: 'Rajdhani', monospace; font-weight: 600; margin-left: 1rem; transition: all 0.3s ease;">
+                        🚪 LOGOUT
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -874,6 +880,95 @@
     <audio id="alert-audio" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae5b2.mp3" preload="auto"></audio>
 
     <script>
+        // ========================================
+        // VÉRIFICATION AUTHENTIFICATION (OBLIGATOIRE)
+        // ========================================
+        (async function checkAuth() {
+            // Charger la configuration d'abord
+            let config;
+            try {
+                const configResponse = await fetch('/api/config');
+                config = await configResponse.json();
+                window.appConfig = config;
+            } catch (error) {
+                console.error('❌ Erreur chargement config:', error);
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // Récupérer le token depuis l'URL ou localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get('token');
+
+            if (tokenFromUrl) {
+                // Sauvegarder le token et nettoyer l'URL
+                localStorage.setItem('jwt_token', tokenFromUrl);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            const token = localStorage.getItem('jwt_token');
+
+            if (!token) {
+                // Pas de token = redirection vers login
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // Vérifier si le token est valide
+            try {
+                const response = await fetch(`${config.backendAuthUrl}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    // Token invalide ou expiré
+                    localStorage.removeItem('jwt_token');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const data = await response.json();
+                window.currentUser = data.user;
+                console.log('✅ Utilisateur authentifié:', data.user.username);
+
+                // Afficher le nom d'utilisateur dans le header
+                const userInfo = document.getElementById('user-info');
+                if (userInfo) {
+                    userInfo.textContent = `👤 ${data.user.username}`;
+                }
+
+                // Initialiser l'application une fois authentifié
+                initApp();
+            } catch (error) {
+                console.error('❌ Erreur authentification:', error);
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login.html';
+            }
+        })();
+
+        // ========================================
+        // APPLICATION (après authentification)
+        // ========================================
+        function initApp() {
+            // Charger l'état des alertes lues
+            loadReadStatus();
+
+            // Démarrer le chargement des alertes
+            loadAlerts();
+
+            // Refresh automatique toutes les 3 secondes
+            setInterval(() => {
+                if (currentPanel === 'alerts') {
+                    loadAlerts(true); // Silent mode
+                }
+            }, 3000);
+
+            // Activer les notifications si possible
+            enableNotifications();
+        }
+
         // Global State
         let currentPanel = 'alerts';
         let lastAlertId = null;
@@ -2019,24 +2114,15 @@
             return outputArray;
         }
 
-        // Initialize Application
-        document.addEventListener('DOMContentLoaded', () => {
-            loadReadStatus();
-            updateConnectionStatus('warning');
-            loadAlerts();
-
-            // Auto-refresh every 3 seconds en mode silencieux pour temps réel
-            setInterval(() => {
-                if (currentPanel === 'alerts') {
-                    loadAlerts(true); // Mode silencieux pour pas de flash
-                }
-            }, 3000);
-
-            // Request notification permission on load
-            if ('Notification' in window && Notification.permission === 'default') {
-                setTimeout(enableNotifications, 2000);
+        // Fonction de déconnexion
+        function logout() {
+            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login.html';
             }
-        });
+        }
+
+        // L'initialisation est gérée par checkAuth() qui appelle initApp() après authentification
     </script>
 </body>
 </html>
