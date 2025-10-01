@@ -2460,21 +2460,39 @@
         // Charger les logs système réels depuis l'API
         async function loadSystemLogs() {
             const token = localStorage.getItem('jwt_token');
-            if (!token) return;
+            const logsContainer = document.getElementById('system-logs-container');
+            
+            if (!logsContainer) {
+                console.warn('⚠️ Conteneur de logs non trouvé');
+                return;
+            }
+            
+            if (!token) {
+                console.warn('⚠️ Pas de token JWT pour charger les logs');
+                logsContainer.innerHTML = '<div style="color: var(--tier-t2); text-align: center;">⚠️ Non authentifié</div>';
+                return;
+            }
+
+            console.log('🔄 Chargement des logs système...');
 
             try {
                 const response = await fetch('/api/system/logs?limit=20', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
+                console.log(`📡 Réponse API logs: ${response.status} ${response.statusText}`);
+
                 if (!response.ok) {
-                    throw new Error('Erreur récupération logs');
+                    if (response.status === 403) {
+                        console.warn('🚫 Accès refusé - Vérifiez que vous avez le rôle admin');
+                        logsContainer.innerHTML = '<div style="color: var(--tier-t2); text-align: center;">⚠️ Accès refusé - Rôle admin requis</div>';
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
                 const data = await response.json();
-                const logsContainer = document.getElementById('system-logs-container');
-                
-                if (!logsContainer) return;
+                console.log(`✅ ${data.logs?.length || 0} logs reçus`);
 
                 if (data.logs && data.logs.length > 0) {
                     let logsHTML = '';
@@ -2511,9 +2529,18 @@
 
             } catch (error) {
                 console.error('Erreur chargement logs:', error);
-                const logsContainer = document.getElementById('system-logs-container');
                 if (logsContainer) {
-                    logsContainer.innerHTML = '<div style="color: var(--tier-t1); text-align: center;">❌ Erreur chargement des logs</div>';
+                    logsContainer.innerHTML = `
+                        <div style="color: var(--tier-t1); text-align: center;">
+                            ❌ Erreur chargement des logs
+                            <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-secondary);">
+                                ${error.message || 'Erreur réseau'}
+                            </div>
+                            <div style="font-size: 0.7rem; margin-top: 0.5rem; color: var(--text-secondary);">
+                                Vérifiez la console pour plus de détails
+                            </div>
+                        </div>
+                    `;
                 }
             }
         }
