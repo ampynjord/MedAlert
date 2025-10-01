@@ -21,10 +21,10 @@ const getCallbackURL = () => {
 
 console.log('🔐 Discord OAuth2 Callback URL:', getCallbackURL());
 console.log('🔑 Discord Client ID:', DISCORD_CLIENT_ID);
-console.log('🔒 Discord Client Secret:', DISCORD_CLIENT_SECRET ? '✓ défini' : '✗ manquant');
+console.log('🔒 Discord Client Secret:', DISCORD_CLIENT_SECRET ? `✓ défini (${DISCORD_CLIENT_SECRET.substring(0, 10)}...)` : '✗ manquant');
 
-// Configuration de la stratégie Discord OAuth2
-passport.use(new DiscordStrategy({
+// Configuration de la stratégie Discord OAuth2 avec gestion d'erreur détaillée
+const discordStrategy = new DiscordStrategy({
     clientID: DISCORD_CLIENT_ID,
     clientSecret: DISCORD_CLIENT_SECRET,
     callbackURL: getCallbackURL(),
@@ -41,7 +41,20 @@ passport.use(new DiscordStrategy({
         guilds: profile.guilds || []
     };
     return done(null, user);
-}));
+});
+
+// Override de la méthode d'erreur pour logger les détails
+const originalAuthorizationError = discordStrategy.error;
+discordStrategy.error = function(err) {
+    console.error('❌ Erreur Discord OAuth2 détaillée:');
+    console.error('   Message:', err.message);
+    console.error('   Status:', err.status || err.statusCode);
+    console.error('   Body:', err.data || err.body);
+    console.error('   Stack:', err.stack);
+    return originalAuthorizationError.call(this, err);
+};
+
+passport.use(discordStrategy);
 
 // Sérialisation de l'utilisateur (pour la session)
 passport.serializeUser((user, done) => {
