@@ -1161,6 +1161,12 @@
             // Charger l'état des alertes lues
             loadReadStatus();
 
+            // Afficher les filtres dès le démarrage (panneau alerts par défaut)
+            const filtersSection = document.getElementById('filters-section');
+            if (filtersSection) {
+                filtersSection.style.display = 'flex';
+            }
+
             // Démarrer le chargement des alertes
             loadAlerts();
 
