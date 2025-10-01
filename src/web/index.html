@@ -2011,26 +2011,68 @@
                 
                 users.forEach(user => {
                     const roles = user.roles ? user.roles.split(',') : ['medic'];
-                    const roleDisplay = roles.includes('admin') ? '👑 ADMIN' : '⚕️ MEDIC';
+                    const isAdmin = roles.includes('admin');
+                    const isMedic = roles.includes('medic');
+                    const roleDisplay = isAdmin ? '👑 ADMIN' : '⚕️ MEDIC';
                     const lastLogin = new Date(user.lastLogin).toLocaleString('fr-FR');
 
                     usersHTML += `
                         <div class="alert-hologram" style="padding: 1.5rem;">
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <div style="font-size: 2rem;">${roles.includes('admin') ? '👑' : '⚕️'}</div>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 1.2rem; color: var(--holo-cyan); font-weight: 700; font-family: 'Orbitron', monospace;">
-                                        ${user.username}${user.discriminator ? `#${user.discriminator}` : ''}
-                                    </div>
-                                    <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                                        Discord ID: ${user.discordId}
-                                    </div>
-                                    <div style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
-                                        Dernière connexion: ${lastLogin}
+                            <div style="display: grid; gap: 1rem;">
+                                <!-- Header avec avatar et info -->
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div style="font-size: 2.5rem;">${isAdmin ? '👑' : '⚕️'}</div>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 1.2rem; color: var(--holo-cyan); font-weight: 700; font-family: 'Orbitron', monospace;">
+                                            ${user.username}${user.discriminator ? `#${user.discriminator}` : ''}
+                                        </div>
+                                        <div style="color: var(--text-secondary); font-size: 0.85rem;">
+                                            Discord ID: ${user.discordId}
+                                        </div>
+                                        <div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.3rem;">
+                                            📅 Dernière connexion: ${lastLogin}
+                                        </div>
                                     </div>
                                 </div>
-                                <div style="padding: 0.5rem 1rem; border-radius: 8px; background: ${roles.includes('admin') ? 'rgba(241, 196, 15, 0.15)' : 'rgba(46, 204, 113, 0.15)'}; color: ${roles.includes('admin') ? '#F1C40F' : '#2ECC71'}; border: 1px solid ${roles.includes('admin') ? '#F1C40F' : '#2ECC71'}; font-weight: 700;">
-                                    ${roleDisplay}
+
+                                <!-- Gestion des rôles -->
+                                <div style="border-top: 1px solid rgba(0, 255, 255, 0.2); padding-top: 1rem;">
+                                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.8rem; font-weight: 600;">
+                                        🔐 GESTION DES RÔLES
+                                    </div>
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <!-- Toggle Admin -->
+                                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; background: ${isAdmin ? 'rgba(241, 196, 15, 0.15)' : 'rgba(255, 255, 255, 0.05)'}; border: 1px solid ${isAdmin ? '#F1C40F' : 'rgba(255, 255, 255, 0.1)'}; transition: all 0.3s;">
+                                            <input 
+                                                type="checkbox" 
+                                                ${isAdmin ? 'checked' : ''} 
+                                                onchange="toggleUserRole('${user.discordId}', 'admin', this.checked)"
+                                                style="cursor: pointer; width: 16px; height: 16px;"
+                                            >
+                                            <span style="font-weight: 700; color: ${isAdmin ? '#F1C40F' : 'var(--text-secondary)'};">
+                                                👑 ADMIN
+                                            </span>
+                                        </label>
+
+                                        <!-- Toggle Medic -->
+                                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; background: ${isMedic ? 'rgba(46, 204, 113, 0.15)' : 'rgba(255, 255, 255, 0.05)'}; border: 1px solid ${isMedic ? '#2ECC71' : 'rgba(255, 255, 255, 0.1)'}; transition: all 0.3s;">
+                                            <input 
+                                                type="checkbox" 
+                                                ${isMedic ? 'checked' : ''} 
+                                                onchange="toggleUserRole('${user.discordId}', 'medic', this.checked)"
+                                                style="cursor: pointer; width: 16px; height: 16px;"
+                                            >
+                                            <span style="font-weight: 700; color: ${isMedic ? '#2ECC71' : 'var(--text-secondary)'};">
+                                                ⚕️ MEDIC
+                                            </span>
+                                        </label>
+
+                                        <!-- Rôles actuels (badges) -->
+                                        <div style="margin-left: auto; display: flex; gap: 0.5rem;">
+                                            ${isAdmin ? '<span style="padding: 0.3rem 0.8rem; border-radius: 6px; background: rgba(241, 196, 15, 0.2); color: #F1C40F; font-size: 0.75rem; font-weight: 700; border: 1px solid #F1C40F;">ADMIN</span>' : ''}
+                                            ${isMedic ? '<span style="padding: 0.3rem 0.8rem; border-radius: 6px; background: rgba(46, 204, 113, 0.2); color: #2ECC71; font-size: 0.75rem; font-weight: 700; border: 1px solid #2ECC71;">MEDIC</span>' : ''}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2043,6 +2085,79 @@
             } catch (error) {
                 console.error('Erreur chargement utilisateurs:', error);
                 contentArea.innerHTML = '<div class="alert-hologram"><div class="alert-message" style="color: var(--tier-t1);">❌ Erreur de chargement des utilisateurs</div></div>';
+            }
+        }
+
+        // Fonction pour basculer un rôle utilisateur
+        async function toggleUserRole(discordId, role, isActive) {
+            const token = localStorage.getItem('jwt_token');
+            
+            if (!token) {
+                showStatus('⛔ Non authentifié', 'error');
+                return;
+            }
+
+            try {
+                // Récupérer les rôles actuels de l'utilisateur
+                const usersResponse = await fetch('/api/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!usersResponse.ok) {
+                    throw new Error('Impossible de récupérer les utilisateurs');
+                }
+
+                const users = await usersResponse.json();
+                const user = users.find(u => u.discordId === discordId);
+                
+                if (!user) {
+                    throw new Error('Utilisateur non trouvé');
+                }
+
+                // Parser les rôles actuels
+                let currentRoles = user.roles ? user.roles.split(',').filter(r => r) : [];
+                
+                // Ajouter ou retirer le rôle
+                if (isActive) {
+                    if (!currentRoles.includes(role)) {
+                        currentRoles.push(role);
+                    }
+                } else {
+                    currentRoles = currentRoles.filter(r => r !== role);
+                }
+
+                // S'assurer qu'il y a au moins un rôle (medic par défaut)
+                if (currentRoles.length === 0) {
+                    currentRoles = ['medic'];
+                }
+
+                const newRoles = currentRoles.join(',');
+
+                // Mettre à jour via l'API
+                const response = await fetch(`/api/users/${discordId}/roles`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ roles: newRoles })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur lors de la mise à jour des rôles');
+                }
+
+                showStatus(`✅ Rôles mis à jour pour ${user.username}`, 'success');
+                
+                // Recharger la liste des utilisateurs
+                setTimeout(() => renderUsersManagement(), 1000);
+
+            } catch (error) {
+                console.error('Erreur modification rôle:', error);
+                showStatus('❌ Erreur lors de la modification des rôles', 'error');
+                
+                // Recharger pour restaurer l'état correct
+                setTimeout(() => renderUsersManagement(), 1500);
             }
         }
 
