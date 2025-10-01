@@ -19,6 +19,10 @@ const getCallbackURL = () => {
     }
 };
 
+console.log('🔐 Discord OAuth2 Callback URL:', getCallbackURL());
+console.log('🔑 Discord Client ID:', DISCORD_CLIENT_ID);
+console.log('🔒 Discord Client Secret:', DISCORD_CLIENT_SECRET ? '✓ défini' : '✗ manquant');
+
 // Configuration de la stratégie Discord OAuth2
 passport.use(new DiscordStrategy({
     clientID: DISCORD_CLIENT_ID,
