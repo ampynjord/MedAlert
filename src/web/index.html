@@ -250,6 +250,8 @@
             padding: 2rem;
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .main-display::after {
@@ -277,6 +279,98 @@
         .main-display > * {
             position: relative;
             z-index: 1;
+        }
+
+        /* Content Area avec scroll personnalisé */
+        #content-area {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Scrollbar holographique personnalisée */
+        #content-area::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        #content-area::-webkit-scrollbar-track {
+            background: rgba(0, 20, 40, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 4px 0;
+        }
+
+        #content-area::-webkit-scrollbar-thumb {
+            background: linear-gradient(
+                180deg,
+                rgba(0, 255, 255, 0.3) 0%,
+                rgba(0, 200, 255, 0.5) 50%,
+                rgba(0, 255, 255, 0.3) 100%
+            );
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            box-shadow: 
+                0 0 10px rgba(0, 255, 255, 0.3),
+                inset 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        #content-area::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(
+                180deg,
+                rgba(0, 255, 255, 0.5) 0%,
+                rgba(0, 200, 255, 0.7) 50%,
+                rgba(0, 255, 255, 0.5) 100%
+            );
+            box-shadow: 
+                0 0 15px rgba(0, 255, 255, 0.5),
+                inset 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        #content-area::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(
+                180deg,
+                rgba(0, 255, 255, 0.7) 0%,
+                rgba(0, 200, 255, 0.9) 50%,
+                rgba(0, 255, 255, 0.7) 100%
+            );
+        }
+
+        /* Scrollbar pour Firefox */
+        #content-area {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 255, 255, 0.5) rgba(0, 20, 40, 0.3);
+        }
+
+        /* Scrollbar pour le systems panel aussi */
+        .system-module::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .system-module::-webkit-scrollbar-track {
+            background: rgba(0, 20, 40, 0.3);
+            border-radius: 8px;
+        }
+
+        .system-module::-webkit-scrollbar-thumb {
+            background: linear-gradient(
+                180deg,
+                rgba(0, 255, 255, 0.3) 0%,
+                rgba(0, 200, 255, 0.4) 50%,
+                rgba(0, 255, 255, 0.3) 100%
+            );
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .system-module::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(
+                180deg,
+                rgba(0, 255, 255, 0.5) 0%,
+                rgba(0, 200, 255, 0.6) 50%,
+                rgba(0, 255, 255, 0.5) 100%
+            );
         }
 
         .display-header {
