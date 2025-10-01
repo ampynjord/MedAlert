@@ -5,7 +5,40 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
 
-Système d'alertes médicales pour Star Citizen avec interface web holographique, bot Discord et notifications push.
+Système d'alertes médicales avancé pour Star Citizen avec interface web holographique, bot Discord, gestion des utilisateurs, système d'assignation des alertes et notifications push en temps réel.
+
+---
+
+## ✨ Fonctionnalités principales
+
+### 🎯 Alertes médicales
+- ⚡ **Alertes en temps réel** via Discord bot et interface web
+- 🎨 **Interface holographique** inspirée de Star Citizen
+- 🏷️ **Système de tiers** (T1: Critique, T2: Modéré, T3: Léger)
+- 🔔 **Notifications push natives** (Web Push API)
+- 📱 **PWA installable** sur mobile et desktop
+- 🔄 **Auto-refresh** toutes les 3 secondes
+
+### 👥 Gestion des utilisateurs
+- 🔐 **Authentification Discord OAuth2** avec JWT
+- 👑 **Système de rôles** (Admin / Medic)
+- 🛡️ **Vérification du serveur Discord** (guild membership)
+- 🎛️ **Interface d'administration** pour gérer les permissions
+- 📊 **Suivi des connexions** (lastLogin)
+
+### 📋 Assignation des alertes
+- 🤝 **Prise en charge collaborative** des alertes
+- 👤 **Vue "Mes Alertes"** pour suivre ses assignations
+- 📊 **Dashboard admin** pour voir toutes les assignations de l'équipe
+- 🔄 **Statut en temps réel** (disponible / assignée)
+- 🔓 **Libération des alertes** par l'assigné ou un admin
+
+### 🖥️ Panneau System Control
+- 📊 **Statistiques système en temps réel** (uptime, DB size, alertes)
+- 📜 **Logs système** avec rafraîchissement automatique
+- ⚙️ **Monitoring des services** (Backend, Discord, DB, Push)
+- 📈 **Métriques de performance** (CPU, mémoire, alertes/heure)
+- 🔧 **Outils de diagnostic** et export de données
 
 ---
 
@@ -14,7 +47,7 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
 ### 📋 Prérequis
 - 🐳 **Docker & Docker Compose**
 - 🤖 **Bot Discord** (voir configuration ci-dessous)
-- 🦊 **Firefox** (recommandé pour les notifications push)
+- 🦊 **Firefox** ou Chrome (recommandé pour les notifications push)
 
 ### ⚡ Installation en 3 étapes
 
@@ -61,16 +94,24 @@ Système d'alertes médicales pour Star Citizen avec interface web holographique
 5. **Copier le token** (bouton "Reset Token" puis "Copy")
 6. **Noter l'Application ID** depuis l'onglet "General Information"
 7. Dans l'onglet **"OAuth2"**, copier le **Client Secret**
+8. Dans l'onglet **"OAuth2"** → **"Redirects"**, ajouter :
+   - `https://localhost:3443/auth/discord/callback` (dev)
+   - `https://medalert.votredomaine.com/auth/discord/callback` (prod)
 
 ### Configurer le fichier `.env`
 
 Éditez `.env` et remplissez :
 ```env
-# Discord
+# Discord Bot
 DISCORD_TOKEN=votre_token_copié_étape_5
 DISCORD_CLIENT_ID=votre_application_id_étape_6
 DISCORD_CLIENT_SECRET=votre_client_secret_étape_7
 DISCORD_GUILD_ID=id_de_votre_serveur_discord
+
+# URLs (adapter selon votre environnement)
+DOMAIN=localhost  # ou medalert.votredomaine.com en production
+FRONTEND_URL=https://localhost:8443
+BACKEND_AUTH_URL=https://localhost:3443
 
 # VAPID (générer avec: npx web-push generate-vapid-keys)
 VAPID_PUBLIC_KEY=votre_cle_publique
@@ -96,6 +137,13 @@ Copiez les clés générées dans votre `.env`.
 3. Remplacer `VOTRE_CLIENT_ID` par votre ID
 4. Sélectionner votre serveur Discord et autoriser le bot
 
+### Obtenir l'ID du serveur Discord
+
+1. Dans Discord, activer le **Mode Développeur** : 
+   - **Paramètres** → **Avancés** → **Mode développeur**
+2. Clic droit sur le nom de votre serveur → **Copier l'identifiant**
+3. Coller cet ID dans `DISCORD_GUILD_ID` du `.env`
+
 ---
 
 ## 🎯 Utilisation
@@ -114,36 +162,93 @@ Copiez les clés générées dans votre `.env`.
 | **T2** | 🟠 Moyenne | Orange | Blessure modérée |
 | **T3** | 🟡 Basse | Jaune | Blessure légère |
 
-### 🖥️ Interface Web
+### 🖥️ Interface Web - Modules disponibles
 
-- 🧭 Navigation entre modules (Alerts, Medical, Analytics, Systems, Comms)
-- ⚡ Alertes en temps réel avec cartes colorées selon le tier
-- 🔔 Notifications push natives (Web Push API)
-- 🎨 Interface holographique inspirée de Star Citizen
-- 📱 PWA (Progressive Web App) - installable sur mobile et desktop
-- 🔄 Auto-refresh toutes les 10 secondes
+#### 📋 **ALERTS** (Medic + Admin)
+- Affichage des alertes en temps réel
+- Cartes colorées selon le tier
+- Bouton **"PRENDRE EN CHARGE"** pour assigner une alerte
+- Bouton **"LIBÉRER"** pour relâcher une alerte
+- Badges d'assignation avec nom de l'utilisateur
+
+#### 🤝 **MES ALERTES** (Medic + Admin)
+- Liste de vos alertes prises en charge
+- Vue admin : toutes les assignations de l'équipe
+- Statut et timestamp d'assignation
+- Libération rapide des alertes
+
+#### 🏥 **MEDICAL** (Medic + Admin)
+- Statistiques médicales
+- Protocoles et procédures
+- Dashboard médical
+
+#### 👥 **USERS** (Admin uniquement)
+- Liste de tous les utilisateurs connectés
+- **Badges de rôles** : � ADMIN, ⚕️ MEDIC
+- **Checkboxes interactives** pour modifier les rôles
+- Affichage de la dernière connexion
+- Mise à jour en temps réel via API
+
+#### 📊 **ANALYTICS** (Admin uniquement)
+- Statistiques d'utilisation
+- Graphiques et tendances
+- Analyse des alertes
+
+#### ⚙️ **SYSTEMS** (Admin uniquement)
+- **État système** : Operational / Checking
+- **Uptime** : Temps réel de fonctionnement du serveur
+- **Taille de la base de données** : Taille réelle SQLite
+- **Sync Status** : État de synchronisation
+- **Modules système** : Backend, DB, Discord, Service Worker, Push, Nginx
+- **Performances** : Alertes/h, alertes 24h, alertes lues/non lues
+- **Logs système en temps réel** (rafraîchissement auto 5s)
+- **Contrôles** : Refresh, Test Notifications, Enable Push, Clear Cache, Export, Diagnostic
 
 ### 👥 Système de rôles
 
-MedAlert utilise un système de permissions basé sur les rôles :
+MedAlert utilise un système de permissions avancé basé sur les rôles :
 
 | Rôle | Badge | Accès aux modules | Description |
 |------|-------|-------------------|-------------|
-| **Admin** | 👑 | Alerts, Medical, Analytics, Systems | Accès complet à tous les modules |
-| **Medic** | ⚕️ | Alerts, Medical | Accès limité aux alertes et systèmes médicaux |
+| **Admin** | 👑 | Tous les modules | Accès complet + gestion des utilisateurs |
+| **Medic** | ⚕️ | Alerts, Medical, Mes Alertes | Accès limité aux fonctions médicales |
 
-**Configuration des rôles :**
-- Les rôles sont attribués automatiquement lors de la connexion Discord
-- Par défaut, tous les utilisateurs ont le rôle **Medic**
-- L'utilisateur `ampynjord` a automatiquement les rôles **Admin + Medic**
-- Pour ajouter d'autres admins, modifiez la fonction `getUserRoles()` dans `src/backend/server.js`
+#### Configuration des rôles
 
-**Permissions par module :**
+**Attribution automatique :**
+- Les rôles sont lus depuis la base de données lors de la connexion
+- Par défaut, tous les nouveaux utilisateurs ont le rôle **Medic**
+- L'utilisateur `ampynjord` a automatiquement **Admin + Medic**
+
+**Modifier les rôles (interface web) :**
+1. Se connecter en tant qu'Admin
+2. Accéder au module **USERS**
+3. Cocher/décocher les rôles souhaités pour chaque utilisateur
+4. Les changements sont appliqués immédiatement en base de données
+
+**Modifier les rôles (base de données) :**
+```bash
+# Accéder au conteneur backend
+docker exec -it medalert-backend sh
+
+# Installer sqlite3
+apk add sqlite
+
+# Modifier les rôles
+sqlite3 /app/database/medals.db "UPDATE users SET roles = 'admin,medic' WHERE username = 'username';"
+
+# Vérifier
+sqlite3 /app/database/medals.db "SELECT username, roles FROM users;"
 ```
-✅ Alerts    → Medic + Admin
-✅ Medical   → Medic + Admin
-🔒 Analytics → Admin uniquement
-🔒 Systems   → Admin uniquement
+
+**Permissions détaillées par module :**
+```
+✅ Alerts        → Medic + Admin
+✅ Mes Alertes   → Medic + Admin  
+✅ Medical       → Medic + Admin
+🔒 Users         → Admin uniquement
+🔒 Analytics     → Admin uniquement
+🔒 Systems       → Admin uniquement
 ```
 
 ### 🔔 Configuration des notifications push
@@ -320,18 +425,43 @@ MedAlert/
 
 ### 🔗 API Endpoints
 
+#### Authentification
 ```http
-# Santé de l'API
-GET  /health
+GET  /auth/discord                # Initier OAuth2 Discord
+GET  /auth/discord/callback       # Callback OAuth2
+GET  /auth/error                  # Page d'erreur auth
+```
 
-# Alertes
-GET  /api/alerts              # Liste des 50 dernières alertes
-POST /api/alerts              # Créer une alerte
+#### Alertes
+```http
+GET  /api/alerts                  # Liste des 50 dernières alertes
+POST /api/alerts                  # Créer une alerte
+POST /api/alerts/:id/assign       # Prendre en charge une alerte (auth requis)
+POST /api/alerts/:id/unassign     # Libérer une alerte (auth requis)
+GET  /api/alerts/my-assignments   # Mes alertes assignées (auth requis)
+GET  /api/alerts/all-assignments  # Toutes les assignations (admin only)
+```
 
-# Notifications Push
-GET  /api/vapid-key           # Clé publique VAPID
-POST /api/subscribe           # S'abonner aux notifications
-POST /api/test-push           # Tester une notification (dev)
+#### Utilisateurs
+```http
+GET  /api/users                   # Liste des utilisateurs (admin only)
+PUT  /api/users/:discordId/roles  # Modifier les rôles (admin only)
+```
+
+#### Système
+```http
+GET  /health                      # Santé de l'API
+GET  /api/config                  # Configuration publique
+GET  /api/system/stats            # Statistiques système (admin only)
+GET  /api/system/logs             # Logs système (admin only)
+GET  /api/system/performance      # Métriques de performance (admin only)
+```
+
+#### Notifications Push
+```http
+GET  /api/vapid-key               # Clé publique VAPID
+POST /api/subscribe               # S'abonner aux notifications
+POST /api/test-push               # Tester une notification (dev)
 ```
 
 ### 🐳 Services Docker
@@ -339,10 +469,43 @@ POST /api/test-push           # Tester une notification (dev)
 | Service | Port(s) | Description |
 |---------|---------|-------------|
 | **cert-generator** | - | Génère les certificats SSL au démarrage |
-| **backend** | 3000, 3443 | API Express + SQLite + Web Push |
+| **backend** | 3000, 3443 | API Express + SQLite + JWT + OAuth2 |
 | **discord-bot** | - | Bot Discord avec slash commands |
 | **web** | 8090, 8443 | Frontend PWA + Service Worker |
 | **nginx** | 80, 443, 8444 | Reverse proxy HTTPS |
+
+### 🗄️ Base de données (SQLite)
+
+#### Table `alerts`
+```sql
+CREATE TABLE alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    author TEXT NOT NULL,
+    tier TEXT NOT NULL,
+    title TEXT,
+    motif TEXT NOT NULL,
+    localisation TEXT NOT NULL,
+    equipe TEXT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    assignedTo TEXT,              -- Discord ID de l'utilisateur assigné
+    assignedToUsername TEXT,      -- Username Discord de l'assigné
+    assignedAt DATETIME,          -- Timestamp d'assignation
+    status TEXT DEFAULT 'open'    -- 'open', 'assigned', 'completed'
+);
+```
+
+#### Table `users`
+```sql
+CREATE TABLE users (
+    discordId TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    discriminator TEXT,
+    avatar TEXT,
+    email TEXT,
+    roles TEXT DEFAULT 'medic',   -- Rôles séparés par virgules: 'admin,medic'
+    lastLogin DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
 
 ---
 
@@ -636,7 +799,178 @@ docker compose logs -f
 
 ---
 
-## 🎨 Personnalisation
+## �️ Architecture technique
+
+### Stack technologique
+
+#### Backend
+- **Node.js 18** (Alpine Linux) - Runtime JavaScript
+- **Express.js** - Framework web minimaliste
+- **SQLite3** - Base de données embarquée
+- **Passport.js** - Authentification OAuth2 Discord
+- **jsonwebtoken** - Gestion des tokens JWT
+- **web-push** - Notifications push VAPID
+- **HTTPS natif** - Serveur sécurisé avec TLS
+
+#### Frontend
+- **HTML5 / CSS3 / Vanilla JavaScript** - Pas de framework
+- **Service Worker API** - Cache et notifications
+- **Web Push API** - Notifications natives du navigateur
+- **Fetch API** - Requêtes HTTP asynchrones
+- **localStorage** - Stockage local du JWT
+- **PWA (Progressive Web App)** - Application installable
+
+#### Bot Discord
+- **Discord.js v14** - Bibliothèque Discord officielle
+- **Slash Commands** - Commandes Discord modernes
+- **SQLite3** - Base de données partagée avec le backend
+
+#### Infrastructure
+- **Docker Compose** - Orchestration des conteneurs
+- **Nginx** - Reverse proxy et terminaison SSL
+- **OpenSSL** - Génération automatique de certificats
+
+### Architecture microservices
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         INTERNET                            │
+└──────────────────┬──────────────────────────────────────────┘
+                   │
+        ┌──────────▼──────────┐
+        │   Nginx (Port 443)   │ ◄── Reverse Proxy + SSL
+        └──────────┬──────────┘
+                   │
+       ┌───────────┴───────────┐
+       │                       │
+  ┌────▼────┐           ┌─────▼─────┐
+  │   Web   │           │  Backend  │
+  │  :8443  │──────────▶│   :3443   │
+  └─────────┘           └─────┬─────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+        ┌─────▼─────┐   ┌─────▼─────┐  ┌─────▼─────┐
+        │  Discord  │   │  SQLite   │  │ Web Push  │
+        │    Bot    │   │    DB     │  │   VAPID   │
+        └───────────┘   └───────────┘  └───────────┘
+                              │
+                        ┌─────▼─────┐
+                        │   users   │
+                        │  alerts   │
+                        └───────────┘
+```
+
+### Flux d'authentification OAuth2
+
+```
+1. User ──────────────────▶ GET /auth/discord
+                              │
+2. Backend ────────────────▶ Discord OAuth2 Server
+                              │
+3. User ◀─────────────────── Discord Login Page
+   (Authorize App)            │
+                              │
+4. Discord ────────────────▶ GET /auth/discord/callback?code=XXX
+                              │
+5. Backend ────────────────▶ POST https://discord.com/api/oauth2/token
+   (Exchange code)            │
+                              │
+6. Discord ────────────────▶ { access_token, refresh_token }
+                              │
+7. Backend ────────────────▶ GET https://discord.com/api/users/@me
+   (Get user profile)         GET https://discord.com/api/users/@me/guilds
+                              │
+8. Backend checks guild       │
+   membership                 │
+                              │
+9. Backend generates JWT      │
+   with roles from DB         │
+                              │
+10. Backend ───────────────▶ Redirect to frontend/?token=JWT
+                              │
+11. Frontend stores JWT       │
+    in localStorage           │
+```
+
+### Système de permissions
+
+```javascript
+// Vérification en cascade
+Token JWT → verifyToken() → req.user
+             ↓
+          req.user.roles → requireRole('admin') → Access granted/denied
+```
+
+**Flow complet :**
+1. Frontend envoie `Authorization: Bearer <JWT>` dans les headers
+2. Middleware `verifyToken` décode le JWT et vérifie la signature
+3. Payload JWT est stocké dans `req.user` (contient roles)
+4. Middleware `requireRole` vérifie si `req.user.roles` contient le rôle requis
+5. Si oui → exécution de la route, sinon → 403 Forbidden
+
+### Gestion des logs système
+
+Le backend maintient un tableau circulaire de 100 logs en mémoire :
+
+```javascript
+const systemLogs = [
+  {
+    timestamp: "2025-10-01T14:31:18.000Z",
+    level: "success",  // success, info, warning, error
+    message: "Database connection: stable"
+  },
+  // ... 99 autres logs
+];
+```
+
+Les logs sont automatiquement ajoutés lors :
+- Du démarrage du serveur
+- De la création d'une alerte
+- D'erreurs système
+- D'événements importants
+
+### Notifications push (VAPID)
+
+**Serveur :**
+```javascript
+// Configuration VAPID
+webpush.setVapidDetails(
+  'mailto:admin@medalert.com',
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
+
+// Envoi notification
+webpush.sendNotification(subscription, JSON.stringify({
+  title: "Nouvelle alerte T1",
+  body: "Blessure grave - Hurston",
+  icon: "/icon-192.png",
+  badge: "/badge-72.png",
+  vibrate: [200, 100, 200],
+  tag: 'medalert',
+  renotify: true
+}));
+```
+
+**Client (Service Worker) :**
+```javascript
+self.addEventListener('push', (event) => {
+  const data = event.data.json();
+  self.registration.showNotification(data.title, {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    vibrate: data.vibrate,
+    tag: data.tag,
+    renotify: data.renotify
+  });
+});
+```
+
+---
+
+## �🎨 Personnalisation
 
 ### Couleurs de l'interface
 
@@ -720,5 +1054,140 @@ L'interface affiche en temps réel :
 **Technologies utilisées :**
 
 Node.js • Express • SQLite • Discord.js • Web Push API • Docker • Nginx • HTTPS/SSL
+
+</div>
+
+---
+
+## 📜 Changelog
+
+### Version 2.0.0 (Octobre 2025) - 🎉 Major Update
+
+#### 🆕 Nouvelles fonctionnalités
+- ✅ **Authentification Discord OAuth2** avec JWT
+- ✅ **Système de rôles avancé** (Admin / Medic)
+- ✅ **Gestion des utilisateurs** (interface admin)
+- ✅ **Assignation collaborative des alertes**
+- ✅ **Module "Mes Alertes"** pour le suivi personnel
+- ✅ **Vérification du serveur Discord** (guild membership)
+- ✅ **Panneau System Control** avec données en temps réel
+- ✅ **Logs système** avec rafraîchissement automatique
+- ✅ **Statistiques système** (uptime, DB size, performances)
+- ✅ **API sécurisée** avec middlewares verifyToken et requireRole
+- ✅ **Boutons "Prendre en charge" / "Libérer"** sur les alertes
+- ✅ **Badges de statut** (disponible / assignée)
+
+#### 🔧 Améliorations
+- ⚡ Passage de 10s à 3s pour l'auto-refresh des alertes
+- 🎨 Interface utilisateur enrichie avec badges et couleurs dynamiques
+- 🔐 Sécurité renforcée avec validation des rôles côté serveur
+- 📊 Tableaux de bord enrichis pour les admins
+- 🔄 Rafraîchissement intelligent (seulement sur le panneau actif)
+- 💾 Persistence des rôles en base de données
+- 📝 Logs détaillés avec niveaux (success, info, warning, error)
+
+#### 🐛 Corrections
+- ✅ Fix: Middleware requireRole ne vérifiait pas le token JWT
+- ✅ Fix: Les rôles n'étaient pas lus depuis la base de données
+- ✅ Fix: Erreur 401 au lieu de 403 pour les endpoints admin
+- ✅ Fix: Messages d'erreur plus explicites dans l'interface
+
+### Version 1.0.0 (Initial Release)
+
+#### Fonctionnalités initiales
+- ⚡ Système d'alertes médicales via Discord
+- 🎨 Interface web holographique Star Citizen
+- 🔔 Notifications push natives
+- 📱 PWA installable
+- 🤖 Bot Discord avec slash commands
+- 💾 Base de données SQLite
+- 🔒 HTTPS avec certificats auto-signés
+- 🐳 Déploiement Docker Compose
+
+---
+
+## 👥 Contributeurs
+
+- **ampynjord** - Créateur et mainteneur principal
+  - Architecture système et microservices
+  - Interface holographique Star Citizen
+  - Système de rôles et permissions
+  - Intégration Discord OAuth2
+  - Système d'assignation collaborative
+
+---
+
+## 📄 Licence
+
+Ce projet est sous licence **MIT**. Voir le fichier `LICENSE` pour plus de détails.
+
+---
+
+## 🙏 Remerciements
+
+- **Cloud Imperium Games** - Pour l'univers Star Citizen qui a inspiré l'interface
+- **Discord.js** - Pour l'excellente bibliothèque Discord
+- **Express.js** - Pour le framework web minimaliste et performant
+- **La communauté Star Citizen** - Pour le feedback et les tests
+
+---
+
+## 🔗 Liens utiles
+
+- 🌟 **Star Citizen** : https://robertsspaceindustries.com
+- 🤖 **Discord.js Documentation** : https://discord.js.org
+- 🔔 **Web Push API** : https://developer.mozilla.org/en-US/docs/Web/API/Push_API
+- 🐳 **Docker Documentation** : https://docs.docker.com
+- 🔐 **Passport.js** : https://www.passportjs.org
+
+---
+
+## 📞 Support
+
+Pour obtenir de l'aide ou signaler un bug :
+
+1. 📋 Ouvrir une **Issue** sur GitHub
+2. 💬 Rejoindre le serveur Discord du projet
+3. 📧 Contacter **ampynjord** directement
+
+---
+
+## 🚀 Roadmap
+
+### 🔮 Fonctionnalités futures
+
+#### Version 2.1.0
+- [ ] **Historique des alertes** avec filtres avancés
+- [ ] **Export des données** en CSV/JSON
+- [ ] **Statistiques avancées** (graphiques, tendances)
+- [ ] **Notifications Discord** personnalisables par utilisateur
+- [ ] **Mode sombre/clair** basculable
+
+#### Version 3.0.0
+- [ ] **Système de messagerie** intégré (chat en temps réel)
+- [ ] **Géolocalisation** des alertes sur une carte 3D
+- [ ] **Intégration StarMap** pour les localisations Star Citizen
+- [ ] **API publique** pour les applications tierces
+- [ ] **Multi-tenancy** (plusieurs organisations)
+- [ ] **Application mobile native** (React Native)
+
+#### Améliorations continues
+- [ ] **Tests automatisés** (Jest, Cypress)
+- [ ] **CI/CD** avec GitHub Actions
+- [ ] **Monitoring** avec Prometheus + Grafana
+- [ ] **Backup automatique** de la base de données
+- [ ] **Rate limiting** sur l'API
+- [ ] **Webhooks** pour les intégrations externes
+
+---
+
+<div align="center">
+
+**Fait avec ❤️ pour la communauté Star Citizen**
+
+⭐ **N'oubliez pas de mettre une étoile si vous aimez le projet !** ⭐
+
+**Star Citizen™** est une marque déposée de Cloud Imperium Games Corporation.  
+Ce projet est un outil communautaire non officiel.
 
 </div>
