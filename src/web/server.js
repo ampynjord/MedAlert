@@ -67,8 +67,13 @@ app.use('/api', (req, res) => {
 
 app.use(express.static(PUBLIC_DIR));
 
-// Redirige toute route inconnue vers index.html (pour SPA/PWA)
-app.get('*', (req, res) => {
+// Redirige toute route non-API inconnue vers index.html (pour SPA/PWA)
+// IMPORTANT: Exclure /api pour ne pas interférer avec le proxy
+app.get('*', (req, res, next) => {
+  // Ne pas capturer les routes API
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 

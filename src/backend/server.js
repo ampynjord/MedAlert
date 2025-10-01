@@ -23,7 +23,27 @@ webpush.setVapidDetails(
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY
 );
+
+// Stockage simple des abonnements push dans un fichier JSON
+const SUBS_FILE = path.join(__dirname, 'push-subs.json');
+
 function sendPushToAll(title, body) {
+  let subs = [];
+  if (fs.existsSync(SUBS_FILE)) {
+    try {
+      subs = JSON.parse(fs.readFileSync(SUBS_FILE, 'utf-8'));
+      if (!Array.isArray(subs)) subs = [];
+    } catch (err) {
+      console.error('Erreur lecture subs:', err.message);
+      subs = [];
+    }
+  }
+
+  if (subs.length === 0) {
+    console.log('Aucun abonnement push à notifier');
+    return;
+  }
+
   subs.forEach(sub => {
     webpush.sendNotification(sub, JSON.stringify({
       title,
@@ -43,8 +63,7 @@ function sendPushToAll(title, body) {
     });
   });
 }
-// Stockage simple des abonnements push dans un fichier JSON
-const SUBS_FILE = path.join(__dirname, 'push-subs.json');
+
 function saveSubscription(sub) {
   let subs = [];
   if (fs.existsSync(SUBS_FILE)) {
@@ -62,6 +81,19 @@ function saveSubscription(sub) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.DB_PATH || '/app/database/medals.db';
+
+// Middleware pour forcer HTTPS (doit être avant les routes)
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] === 'http') {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  // Headers de sécurité HTTPS
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 
 app.use(cors());
 app.use(express.json());
@@ -105,6 +137,32 @@ app.get('/api/alerts', (req, res) => {
   db.all('SELECT * FROM alerts ORDER BY createdAt DESC LIMIT 50', (err, rows) => {
     if (err) return res.status(500).json({ error: 'Erreur base de données' });
     res.json(rows);
+  });
+});
+
+// Supprimer une alerte
+app.delete('/api/alerts/:id', (req, res) => {
+  const alertId = req.params.id;
+  console.log(`🗑️  DELETE /api/alerts/${alertId} - Request received`);
+
+  if (!alertId) {
+    console.log('❌ DELETE failed: ID manquant');
+    return res.status(400).json({ error: 'ID manquant' });
+  }
+
+  db.run('DELETE FROM alerts WHERE id = ?', [alertId], function(err) {
+    if (err) {
+      console.error('❌ Erreur suppression alerte:', err);
+      return res.status(500).json({ error: 'Erreur base de données' });
+    }
+
+    if (this.changes === 0) {
+      console.log(`❌ Alerte ${alertId} non trouvée (changes: ${this.changes})`);
+      return res.status(404).json({ error: 'Alerte non trouvée' });
+    }
+
+    console.log(`✅ Alerte ${alertId} supprimée (changes: ${this.changes})`);
+    res.json({ message: 'Alerte supprimée avec succès', id: alertId });
   });
 });
 
@@ -193,19 +251,6 @@ app.post('/api/test-push', (req, res) => {
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 const keyPath = process.env.SSL_KEY_PATH || path.join(__dirname, 'certs/localhost-key.pem');
 const certPath = process.env.SSL_CERT_PATH || path.join(__dirname, 'certs/localhost-cert.pem');
-
-// Middleware pour forcer HTTPS
-app.use((req, res, next) => {
-  if (req.headers['x-forwarded-proto'] === 'http') {
-    return res.redirect(301, `https://${req.headers.host}${req.url}`);
-  }
-  // Headers de sécurité HTTPS
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
-});
 
 // Serveur HTTPS uniquement
 if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
