@@ -1049,6 +1049,7 @@
             activeAlerts: 0,
             highPriority: 0
         };
+        let systemLogsInterval = null; // Intervalle pour rafraîchir les logs système
 
         // Charger l'état des alertes lues depuis localStorage
         function loadReadStatus() {
@@ -1114,8 +1115,32 @@
                 case 'systems':
                     titleElement.textContent = 'SYSTEM CONTROL';
                     renderSystemControl();
+                    // Démarrer le rafraîchissement automatique des logs
+                    startSystemLogsRefresh();
                     break;
             }
+            
+            // Arrêter le rafraîchissement si on quitte le panneau systems
+            if (panel !== 'systems' && systemLogsInterval) {
+                clearInterval(systemLogsInterval);
+                systemLogsInterval = null;
+            }
+        }
+
+        // Démarrer le rafraîchissement automatique des logs système
+        function startSystemLogsRefresh() {
+            // Nettoyer l'ancien intervalle s'il existe
+            if (systemLogsInterval) {
+                clearInterval(systemLogsInterval);
+            }
+            
+            // Rafraîchir toutes les 5 secondes
+            systemLogsInterval = setInterval(() => {
+                if (currentPanel === 'systems') {
+                    loadSystemLogs();
+                    loadSystemStats();
+                }
+            }, 5000);
         }
 
         // Réafficher les alertes depuis le cache sans appel API
@@ -2269,7 +2294,7 @@
 
                         <div class="system-module">
                             <div class="module-title">⏱️ UPTIME</div>
-                            <div style="font-size: 3rem; color: var(--holo-cyan); text-align: center; font-family: 'Orbitron', monospace; text-shadow: var(--glow-primary);">
+                            <div data-stat="uptime" style="font-size: 3rem; color: var(--holo-cyan); text-align: center; font-family: 'Orbitron', monospace; text-shadow: var(--glow-primary);">
                                 ${systemUptime}h
                             </div>
                             <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
@@ -2279,7 +2304,7 @@
 
                         <div class="system-module">
                             <div class="module-title">💾 BASE DE DONNÉES</div>
-                            <div style="font-size: 3rem; color: var(--holo-blue); text-align: center; font-family: 'Orbitron', monospace; text-shadow: 0 0 20px var(--holo-blue);">
+                            <div data-stat="dbsize" style="font-size: 3rem; color: var(--holo-blue); text-align: center; font-family: 'Orbitron', monospace; text-shadow: 0 0 20px var(--holo-blue);">
                                 ${dbSize} KB
                             </div>
                             <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
@@ -2389,17 +2414,108 @@
                     <!-- Logs système -->
                     <div class="system-module">
                         <div class="module-title">📜 LOGS SYSTÈME (RÉCENTS)</div>
-                        <div style="font-family: 'Courier New', monospace; font-size: 0.85rem; background: rgba(0, 0, 0, 0.3); padding: 1rem; border-radius: 8px; max-height: 200px; overflow-y: auto;">
-                            <div style="color: var(--holo-green);">[${new Date().toISOString()}] ✓ System Control panel loaded</div>
-                            <div style="color: var(--holo-cyan);">[${new Date(Date.now() - 3000).toISOString()}] → Real-time sync: 3s interval</div>
-                            <div style="color: var(--holo-cyan);">[${new Date(Date.now() - 5000).toISOString()}] → API health check: OK</div>
-                            <div style="color: var(--holo-green);">[${new Date(Date.now() - 8000).toISOString()}] ✓ Database connection: stable</div>
-                            <div style="color: var(--holo-cyan);">[${new Date(Date.now() - 12000).toISOString()}] → Service Worker: active</div>
-                            <div style="color: var(--holo-green);">[${new Date(Date.now() - 15000).toISOString()}] ✓ Push notifications: enabled</div>
+                        <div id="system-logs-container" style="font-family: 'Courier New', monospace; font-size: 0.85rem; background: rgba(0, 0, 0, 0.3); padding: 1rem; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                            <div style="color: var(--text-secondary); text-align: center;">Chargement des logs...</div>
                         </div>
                     </div>
                 </div>
             `;
+            
+            // Charger les statistiques système réelles
+            loadSystemStats();
+            loadSystemLogs();
+        }
+
+        // Charger les statistiques système en temps réel
+        async function loadSystemStats() {
+            const token = localStorage.getItem('jwt_token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('/api/system/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) return;
+
+                const stats = await response.json();
+                
+                // Mettre à jour l'uptime
+                const uptimeElement = document.querySelector('[data-stat="uptime"]');
+                if (uptimeElement && stats.uptime) {
+                    uptimeElement.textContent = `${stats.uptime}h`;
+                }
+
+                // Mettre à jour la taille DB
+                const dbSizeElement = document.querySelector('[data-stat="dbsize"]');
+                if (dbSizeElement && stats.dbSizeFormatted) {
+                    dbSizeElement.textContent = stats.dbSizeFormatted;
+                }
+
+            } catch (error) {
+                console.error('Erreur chargement stats:', error);
+            }
+        }
+
+        // Charger les logs système réels depuis l'API
+        async function loadSystemLogs() {
+            const token = localStorage.getItem('jwt_token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('/api/system/logs?limit=20', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur récupération logs');
+                }
+
+                const data = await response.json();
+                const logsContainer = document.getElementById('system-logs-container');
+                
+                if (!logsContainer) return;
+
+                if (data.logs && data.logs.length > 0) {
+                    let logsHTML = '';
+                    data.logs.forEach(log => {
+                        const colorMap = {
+                            'success': 'var(--holo-green)',
+                            'info': 'var(--holo-cyan)',
+                            'warning': 'var(--tier-t2)',
+                            'error': 'var(--tier-t1)'
+                        };
+                        const prefixMap = {
+                            'success': '✓',
+                            'info': '→',
+                            'warning': '⚠️',
+                            'error': '❌'
+                        };
+                        const color = colorMap[log.level] || 'var(--text-secondary)';
+                        const prefix = prefixMap[log.level] || '•';
+                        const timestamp = new Date(log.timestamp).toLocaleString('fr-FR', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                        });
+                        
+                        logsHTML += `<div style="color: ${color}; padding: 0.2rem 0;">[${timestamp}] ${prefix} ${log.message}</div>`;
+                    });
+                    logsContainer.innerHTML = logsHTML;
+                } else {
+                    logsContainer.innerHTML = '<div style="color: var(--text-secondary); text-align: center;">Aucun log disponible</div>';
+                }
+
+            } catch (error) {
+                console.error('Erreur chargement logs:', error);
+                const logsContainer = document.getElementById('system-logs-container');
+                if (logsContainer) {
+                    logsContainer.innerHTML = '<div style="color: var(--tier-t1); text-align: center;">❌ Erreur chargement des logs</div>';
+                }
+            }
         }
 
         // Fonctions de contrôle système

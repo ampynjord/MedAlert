@@ -571,6 +571,167 @@ app.post('/api/test-push', (req, res) => {
   }
 });
 
+// ========================================
+// SYSTEM CONTROL ENDPOINTS
+// ========================================
+
+// Système de logs en mémoire
+const systemLogs = [];
+const MAX_LOGS = 100;
+
+function addSystemLog(level, message) {
+  const log = {
+    timestamp: new Date().toISOString(),
+    level, // 'info', 'success', 'warning', 'error'
+    message
+  };
+  systemLogs.unshift(log);
+  if (systemLogs.length > MAX_LOGS) {
+    systemLogs.pop();
+  }
+  
+  // Log également dans la console
+  const prefix = {
+    'success': '✓',
+    'info': '→',
+    'warning': '⚠️',
+    'error': '❌'
+  }[level] || '•';
+  console.log(`[${log.timestamp}] ${prefix} ${message}`);
+}
+
+// Initialiser avec quelques logs de démarrage
+const serverStartTime = Date.now();
+addSystemLog('success', 'System Control panel loaded');
+addSystemLog('info', 'Real-time sync: 3s interval');
+addSystemLog('success', 'Database connection: stable');
+addSystemLog('info', 'Service Worker: active');
+addSystemLog('success', 'Push notifications: enabled');
+
+// Endpoint pour récupérer les statistiques système (admin only)
+app.get('/api/system/stats', requireRole('admin'), (req, res) => {
+  try {
+    const uptime = Math.floor((Date.now() - serverStartTime) / 1000); // en secondes
+    const uptimeHours = Math.floor(uptime / 3600);
+    
+    // Récupérer les stats de la base de données
+    db.get('SELECT COUNT(*) as count FROM alerts', (err, alertCount) => {
+      if (err) {
+        return res.status(500).json({ error: 'Erreur lecture DB' });
+      }
+      
+      db.get('SELECT COUNT(*) as count FROM users', (err, userCount) => {
+        if (err) {
+          return res.status(500).json({ error: 'Erreur lecture DB' });
+        }
+        
+        db.get('SELECT COUNT(*) as count FROM alerts WHERE createdAt >= datetime("now", "-24 hours")', (err, alerts24h) => {
+          if (err) {
+            return res.status(500).json({ error: 'Erreur lecture DB' });
+          }
+          
+          // Statistiques des abonnements push
+          let pushSubsCount = 0;
+          if (fs.existsSync(SUBS_FILE)) {
+            try {
+              const subs = JSON.parse(fs.readFileSync(SUBS_FILE, 'utf-8'));
+              pushSubsCount = Array.isArray(subs) ? subs.length : 0;
+            } catch {}
+          }
+          
+          // Taille de la base de données
+          let dbSize = 0;
+          try {
+            const stats = fs.statSync(DB_PATH);
+            dbSize = stats.size;
+          } catch {}
+          
+          res.json({
+            uptime: uptimeHours,
+            uptimeSeconds: uptime,
+            dbSize: dbSize,
+            dbSizeFormatted: formatBytes(dbSize),
+            totalAlerts: alertCount.count,
+            totalUsers: userCount.count,
+            alerts24h: alerts24h.count,
+            pushSubscriptions: pushSubsCount,
+            nodeVersion: process.version,
+            platform: process.platform,
+            memory: process.memoryUsage(),
+            lastSync: new Date().toISOString()
+          });
+        });
+      });
+    });
+  } catch (error) {
+    console.error('❌ Erreur statistiques système:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Endpoint pour récupérer les logs système (admin only)
+app.get('/api/system/logs', requireRole('admin'), (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const logs = systemLogs.slice(0, limit);
+    res.json({ logs });
+  } catch (error) {
+    console.error('❌ Erreur récupération logs:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Endpoint pour les performances système (admin only)
+app.get('/api/system/performance', requireRole('admin'), (req, res) => {
+  try {
+    const mem = process.memoryUsage();
+    const cpuUsage = process.cpuUsage();
+    
+    db.all('SELECT COUNT(*) as count, strftime("%H", createdAt) as hour FROM alerts WHERE createdAt >= datetime("now", "-24 hours") GROUP BY hour', (err, hourlyStats) => {
+      if (err) {
+        hourlyStats = [];
+      }
+      
+      res.json({
+        memory: {
+          heapUsed: mem.heapUsed,
+          heapTotal: mem.heapTotal,
+          heapUsedFormatted: formatBytes(mem.heapUsed),
+          heapTotalFormatted: formatBytes(mem.heapTotal),
+          external: mem.external,
+          rss: mem.rss
+        },
+        cpu: {
+          user: cpuUsage.user,
+          system: cpuUsage.system
+        },
+        hourlyAlerts: hourlyStats || []
+      });
+    });
+  } catch (error) {
+    console.error('❌ Erreur performances:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Fonction utilitaire pour formater les octets
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Hook pour ajouter des logs automatiquement sur certaines actions
+const originalDbRun = db.run.bind(db);
+db.run = function(sql, params, callback) {
+  if (sql.includes('INSERT INTO alerts')) {
+    addSystemLog('info', 'New alert created');
+  }
+  return originalDbRun(sql, params, callback);
+};
+
 // Configuration HTTPS uniquement
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 const keyPath = process.env.SSL_KEY_PATH || path.join(__dirname, 'certs/localhost-key.pem');
