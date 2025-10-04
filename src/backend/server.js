@@ -1,8 +1,7 @@
 
 // Dépendances Node.js (toujours en tout début de fichier)
-const fs = require('fs');
 const path = require('path');
-const https = require('https');
+// const https = require('https');
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
@@ -109,7 +108,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true, // HTTPS uniquement
+    secure: false, // Traefik handles HTTPS // HTTPS uniquement
     maxAge: 24 * 60 * 60 * 1000 // 24 heures
   }
 }));
@@ -732,35 +731,8 @@ db.run = function(sql, params, callback) {
   return originalDbRun(sql, params, callback);
 };
 
-// Configuration HTTPS uniquement
-const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
-const keyPath = process.env.SSL_KEY_PATH || path.join(__dirname, 'certs/localhost-key.pem');
-const certPath = process.env.SSL_CERT_PATH || path.join(__dirname, 'certs/localhost-cert.pem');
 
-// Serveur HTTPS uniquement
-if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-  const options = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath)
-  };
-
-  // Serveur HTTPS principal
-  https.createServer(options, app).listen(HTTPS_PORT, '0.0.0.0', () => {
-    console.log(`🔒 Backend MedAlert sécurisé sur https://0.0.0.0:${HTTPS_PORT}`);
-  });
-
-  // Serveur HTTP de redirection (optionnel pour dev)
-  if (process.env.NODE_ENV !== 'production') {
-    const httpApp = express();
-    httpApp.use((req, res) => {
-      res.redirect(301, `https://${req.headers.host.replace(':3000', ':3443')}${req.url}`);
-    });
-    httpApp.listen(PORT, '0.0.0.0', () => {
-      console.log(`🔄 Redirection HTTP vers HTTPS sur le port ${PORT}`);
-    });
-  }
-} else {
-  console.error('❌ Certificats HTTPS requis non trouvés:', { keyPath, certPath });
-  console.error('🔧 Générez les certificats SSL ou vérifiez les variables d\'environnement');
-  process.exit(1);
-}
+// Serveur HTTP - Traefik gere le HTTPS
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Backend MedAlert on http://0.0.0.0:" + PORT + " - SSL via Traefik");
+});

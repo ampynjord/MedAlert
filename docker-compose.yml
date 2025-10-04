@@ -1,29 +1,28 @@
 services:
-  # Service de génération automatique des certificats SSL
-  cert-generator:
-    build: ./certs
-    container_name: medalert-certs
-    environment:
-      - DOMAIN=${DOMAIN:-localhost}
-    volumes:
-      - ./certs:/certs
-    restart: "no"
-
   backend:
     build: ./src/backend
     container_name: medalert-backend
-    ports:
-      - "${PORT:-3000}:${PORT:-3000}"
-      - "${HTTPS_PORT:-3443}:${HTTPS_PORT:-3443}"
+    expose:
+      - "3000"
     env_file:
       - .env
     volumes:
       - database-data:/app/database
-      - ./certs:/app/certs
-    depends_on:
-      cert-generator:
-        condition: service_completed_successfully
     restart: unless-stopped
+    networks:
+      - medalert-internal
+      - traefik-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      # Routes API (priorité haute pour intercepter avant web)
+      - "traefik.http.routers.medalert-api.rule=(Host(`medalert.ampynjord.bzh`) || Host(`www.medalert.ampynjord.bzh`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`))"
+      - "traefik.http.routers.medalert-api.entrypoints=websecure"
+      - "traefik.http.routers.medalert-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.medalert-api.service=medalert-api"
+      - "traefik.http.routers.medalert-api.priority=100"
+      - "traefik.http.services.medalert-api.loadbalancer.server.port=3000"
+      - "traefik.http.services.medalert-api.loadbalancer.server.scheme=http"
 
   discord-bot:
     build: ./src/discord
@@ -31,54 +30,44 @@ services:
     env_file:
       - .env
     depends_on:
-      cert-generator:
-        condition: service_completed_successfully
-      backend:
-        condition: service_started
+      - backend
     restart: unless-stopped
+    networks:
+      - medalert-internal
 
   web:
     build: ./src/web
     container_name: medalert-web
-    ports:
-      - "${PUBLIC_WEB_HTTP_PORT:-8090}:8090"
-      - "${PUBLIC_WEB_HTTPS_PORT:-8443}:8443"
+    expose:
+      - "8090"
     env_file:
       - .env
     depends_on:
-      cert-generator:
-        condition: service_completed_successfully
-      backend:
-        condition: service_started
+      - backend
     restart: unless-stopped
     volumes:
       - ./src/web:/app
       - /app/node_modules
-      - ./certs:/app/certs
+    networks:
+      - medalert-internal
+      - traefik-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      # Routes frontend (priorité basse)
+      - "traefik.http.routers.medalert-web.rule=Host(`medalert.ampynjord.bzh`) || Host(`www.medalert.ampynjord.bzh`)"
+      - "traefik.http.routers.medalert-web.entrypoints=websecure"
+      - "traefik.http.routers.medalert-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.medalert-web.service=medalert-web"
+      - "traefik.http.routers.medalert-web.priority=10"
+      - "traefik.http.services.medalert-web.loadbalancer.server.port=8090"
+      - "traefik.http.services.medalert-web.loadbalancer.server.scheme=http"
 
-  nginx:
-    build: ./nginx
-    container_name: medalert-nginx
-    ports:
-      - "${PUBLIC_HTTP_PORT:-80}:80"
-      - "${PUBLIC_HTTPS_PORT:-443}:443"
-      - "${PUBLIC_NGINX_ALT_PORT:-8444}:8443"
-    environment:
-      - DOMAIN=${DOMAIN:-localhost}
-      - PRODUCTION_DOMAIN=${PRODUCTION_DOMAIN:-medalert.ampynjord.bzh}
-      - BLOCKED_DOMAIN=${BLOCKED_DOMAIN:-ampynjord.bzh}
-    env_file:
-      - .env
-    volumes:
-      - ./certs:/etc/nginx/certs
-    depends_on:
-      cert-generator:
-        condition: service_completed_successfully
-      web:
-        condition: service_started
-      backend:
-        condition: service_started
-    restart: unless-stopped
+networks:
+  medalert-internal:
+    driver: bridge
+  traefik-proxy:
+    external: true
 
 volumes:
   database-data:
