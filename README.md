@@ -348,36 +348,6 @@ docker compose ps
 
 ---
 
-## 📝 Changelog
-
-### Version 3.0.0 (Octobre 2025) - Architecture Traefik
-
-**Changements majeurs :**
-- ✅ Migration nginx → Traefik v3
-- ✅ Let's Encrypt automatique
-- ✅ Communication HTTP interne
-- ✅ Suppression cert-generator
-- ✅ Clean architecture
-
-**Suppressions :**
-- ❌ nginx/ et certs/
-- ❌ Variables SSL obsolètes
-- ❌ Ports HTTPS internes (3443, 8443)
-
-### Version 2.0.0
-- OAuth2 Discord + JWT
-- Système de rôles
-- Assignation collaborative
-- Panneau System Control
-
-### Version 1.0.0
-- Interface holographique
-- Bot Discord
-- Notifications push
-- PWA
-
----
-
 ## 📞 Support
 
 - 🐛 Issues : GitHub
@@ -388,7 +358,7 @@ docker compose ps
 
 <div align="center">
 
-### ⚕️ MedAlert v3.0
+### ⚕️ MedAlert v1.0
 
 **Développé par ampynjord pour la communauté Star Citizen**
 
