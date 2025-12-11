@@ -15,14 +15,14 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-proxy"
-      # Routes API (priorité haute pour intercepter avant web)
-      - "traefik.http.routers.medalert-api.rule=(Host(`medalert.ampynjord.bzh`) || Host(`www.medalert.ampynjord.bzh`)) && (PathPrefix(`/api`) || PathPrefix(`/auth`))"
+      
+      # MedAlert API - medalert.ampynjord.bzh/api
+      - "traefik.http.routers.medalert-api.rule=Host(`medalert.ampynjord.bzh`) && (PathPrefix(`/api`) || PathPrefix(`/auth`))"
       - "traefik.http.routers.medalert-api.entrypoints=websecure"
       - "traefik.http.routers.medalert-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.medalert-api.service=medalert-api"
       - "traefik.http.routers.medalert-api.priority=100"
       - "traefik.http.services.medalert-api.loadbalancer.server.port=3000"
-      - "traefik.http.services.medalert-api.loadbalancer.server.scheme=http"
 
   discord-bot:
     build: ./src/discord
@@ -54,14 +54,14 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-proxy"
-      # Routes frontend (priorité basse)
-      - "traefik.http.routers.medalert-web.rule=Host(`medalert.ampynjord.bzh`) || Host(`www.medalert.ampynjord.bzh`)"
+      
+      # MedAlert Web - medalert.ampynjord.bzh
+      - "traefik.http.routers.medalert-web.rule=Host(`medalert.ampynjord.bzh`)"
       - "traefik.http.routers.medalert-web.entrypoints=websecure"
       - "traefik.http.routers.medalert-web.tls.certresolver=letsencrypt"
       - "traefik.http.routers.medalert-web.service=medalert-web"
       - "traefik.http.routers.medalert-web.priority=10"
       - "traefik.http.services.medalert-web.loadbalancer.server.port=8090"
-      - "traefik.http.services.medalert-web.loadbalancer.server.scheme=http"
 
 networks:
   medalert-internal:
