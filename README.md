@@ -1,57 +1,57 @@
 # 🚨 MedAlert
 
-Système d'alertes médicales avec Discord bot
+Medical alert system with a Discord bot
 
-## 📋 Informations
+## 📋 Information
 
 - **Services**:
   - Backend API (Node.js)
-  - Frontend Web (PWA)
-  - Discord Bot
-- **Reverse Proxy**: Traefik
-- **Base de données**: SQLite
+  - Web frontend (PWA)
+  - Discord bot
+- **Reverse proxy**: Traefik
+- **Database**: SQLite
 
-## 🚀 Gestion
+## 🚀 Management
 
-### Avec le gestionnaire centralisé
+### With the central manager
 ```bash
 cd /home/debian/apps
-./manage.sh medalert start      # Démarrer
-./manage.sh medalert stop       # Arrêter
-./manage.sh medalert restart    # Redémarrer
-./manage.sh medalert logs       # Voir les logs
-./manage.sh medalert status     # Statut
+./manage.sh medalert start      # Start
+./manage.sh medalert stop       # Stop
+./manage.sh medalert restart    # Restart
+./manage.sh medalert logs       # View logs
+./manage.sh medalert status     # Status
 ```
 
-### Commandes Docker directes
+### Direct Docker commands
 ```bash
 cd /home/debian/apps/medalert
-docker compose up -d            # Démarrer
-docker compose down             # Arrêter
-docker compose restart          # Redémarrer
-docker compose logs -f          # Logs temps réel
-docker compose ps               # Statut
+docker compose up -d            # Start
+docker compose down             # Stop
+docker compose restart          # Restart
+docker compose logs -f          # Live logs
+docker compose ps               # Status
 ```
 
 ## 📁 Structure
 
 ```
 /home/debian/apps/medalert/
-├── docker-compose.yml          # Configuration Docker
+├── docker-compose.yml          # Docker configuration
 └── src/
-    ├── backend/                # API Node.js
+    ├── backend/                # Node.js API
     │   ├── Dockerfile
     │   ├── server.js
     │   ├── auth.js
     │   └── package.json
-    ├── web/                    # Application web PWA
+    ├── web/                    # PWA web application
     │   ├── Dockerfile
     │   ├── index.html
     │   ├── login.html
     │   ├── server.js
     │   ├── manifest.json
     │   └── service-worker.js
-    └── discord/                # Bot Discord
+    └── discord/                # Discord bot
         ├── Dockerfile
         ├── bot.js
         └── package.json
@@ -60,29 +60,29 @@ docker compose ps               # Statut
 ## 🔧 Configuration
 
 ### Services
-- **medalert-backend**: API sur port 3000 (interne)
-- **medalert-web**: Frontend sur port 8090/8443 (interne)
-- **medalert-discord**: Bot Discord
+- **medalert-backend**: API on port 3000 (internal)
+- **medalert-web**: Frontend on port 8090/8443 (internal)
+- **medalert-discord**: Discord bot
 
 ### Traefik
-- Routes configurées pour API et Web
+- Routes configured for the API and the web app
 
 ## 💾 Backup
 
-⚠️ **Système de backup à implémenter**
+⚠️ **Backup system still to be implemented**
 
-Pour l'instant, backup manuel de la base SQLite:
+For now, back up the SQLite database manually:
 ```bash
-# Backup manuel
+# Manual backup
 docker exec medalert-backend cp /app/database/medals.db /app/database/medals_backup_$(date +%Y%m%d).db
 
-# Copier en local
+# Copy locally
 docker cp medalert-backend:/app/database/medals_backup_YYYYMMDD.db ./
 ```
 
 ## 📝 Maintenance
 
-### Voir les logs par service
+### View logs per service
 ```bash
 # Backend
 docker compose logs -f medalert-backend
@@ -94,46 +94,46 @@ docker compose logs -f medalert-web
 docker compose logs -f medalert-discord
 ```
 
-### Mettre à jour
+### Update
 ```bash
 cd /home/debian/apps/medalert
 docker compose pull
 docker compose up -d
 ```
 
-### Rebuild après modifications
+### Rebuild after changes
 ```bash
 docker compose down
 docker compose build --no-cache
 docker compose up -d
 ```
 
-## 🆘 Dépannage
+## 🆘 Troubleshooting
 
-### Un service ne démarre pas
+### A service does not start
 ```bash
-# Vérifier le statut
+# Check the status
 docker compose ps
 
-# Logs spécifiques
+# Specific logs
 docker compose logs medalert-backend
 docker compose logs medalert-web
 docker compose logs medalert-discord
 
-# Redémarrer un service
+# Restart a service
 docker compose restart medalert-backend
 ```
 
-### Bot Discord déconnecté
+### Discord bot disconnected
 ```bash
-# Vérifier les logs
+# Check the logs
 docker compose logs medalert-discord
 
-# Redémarrer
+# Restart
 docker compose restart medalert-discord
 ```
 
-## 🔗 Liens
+## 🔗 Links
 
-- Documentation: À compléter
-- Discord: Bot configuré
+- Documentation: to be completed
+- Discord: bot configured
